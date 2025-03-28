@@ -1,103 +1,75 @@
-import Image from "next/image";
+"use client";
+import React from "react";
+import { ChevronRight, Store, FileText, TrendingUp } from "lucide-react";
+
+// 임시 데이터
+const orderStats = {
+  newOrders: 1,
+  inProgress: 1,
+  accepted: 1,
+  completed: 1,
+  cancelled: 1,
+};
+
+const salesInfo = {
+  ownerName: "김배민",
+  todayExpectedSales: 523000,
+  orderCount: 4,
+};
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <>
+      {/* 매출 정보 */}
+      <div className="bg-white p-5 rounded-lg shadow-sm mb-6">
+        <div className="mb-4">
+          <p className="text-gray-900">{salesInfo.ownerName} 사장님,</p>
+          <p className="flex items-baseline mt-1">
+            <span className="text-gray-700">오늘 예정 금액은</span>
+            <span className="text-blue-500 text-xl font-bold mx-1">
+              {salesInfo.todayExpectedSales.toLocaleString()}원
+            </span>
+            <span className="text-gray-700">입니다.</span>
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            배달의민족에서 받고 있는 주문 {salesInfo.orderCount}건 입니다.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {/* 주문 현황 */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold">주문 처리 현황</h2>
+            <button className="text-sm text-gray-500">전체보기</button>
+          </div>
+          <div className="grid grid-cols-5 gap-2 text-center">
+            <div className="bg-white p-2 rounded">
+              <p className="text-orange-500 font-bold">
+                {orderStats.newOrders}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">신규</p>
+            </div>
+            <div className="bg-white p-2 rounded">
+              <p className="text-green-500 font-bold">
+                {orderStats.inProgress}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">처리중</p>
+            </div>
+            <div className="bg-white p-2 rounded">
+              <p className="text-blue-500 font-bold">{orderStats.accepted}</p>
+              <p className="text-xs text-gray-500 mt-1">접수</p>
+            </div>
+            <div className="bg-white p-2 rounded">
+              <p className="text-gray-900 font-bold">{orderStats.completed}</p>
+              <p className="text-xs text-gray-500 mt-1">완료</p>
+            </div>
+            <div className="bg-white p-2 rounded">
+              <p className="text-red-500 font-bold">{orderStats.cancelled}</p>
+              <p className="text-xs text-gray-500 mt-1">취소</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
