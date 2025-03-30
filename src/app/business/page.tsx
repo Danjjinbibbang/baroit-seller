@@ -11,11 +11,11 @@ import {
 } from "lucide-react";
 
 // 컴포넌트 import
-import Home from "../home/page";
+import Home from "../page";
 import Notice from "../notice/page";
 import Stats from "../stats/page";
 import Settings_ from "../setting/page";
-import Management from "../store/originpage";
+import Management from "../store/page";
 import ProductsPage from "../products/page";
 
 // 메뉴 데이터
