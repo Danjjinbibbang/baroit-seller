@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, X, Upload } from "lucide-react";
+import { Product, ProductOption } from "@/components/product/ProductDetail";
 
 // 임시 카테고리 데이터
 const productCategories = [
