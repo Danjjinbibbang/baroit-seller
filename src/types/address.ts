@@ -1,10 +1,11 @@
 export interface Address {
   addressId: number;
+  customerId: number;
   alias: string;
   isDefault: boolean;
-  receiverName: string;
-  receiverPhone: string;
-  zipcode: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  zipcode?: string;
   road: string;
   jibun: string;
   detailed: string;
@@ -13,6 +14,8 @@ export interface Address {
   riderMessage: string | null;
   entrancePassword: string | null;
   deliveryGuideMessage: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AddressFormData {
