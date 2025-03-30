@@ -70,8 +70,8 @@ export function StoreBasicInfo() {
         const addressInfo = data.documents[0];
         let roadAddress = "";
         let jibunAddress = "";
-        let latitude = location.lat;
-        let longitude = location.lng;
+        const latitude = location.lat;
+        const longitude = location.lng;
         console.log(latitude, longitude);
 
         if (addressInfo.road_address) {
@@ -101,6 +101,14 @@ export function StoreBasicInfo() {
   };
 
   // 주소 검색 결과 처리
+  interface AddressData {
+    zonecode: string;
+    jibunAddress: string;
+    roadAddress: string;
+    latitude?: number;
+    longitude?: number;
+  }
+
   const handleAddressSelect = (address: AddressData) => {
     setStoreInfo((prev) => ({
       ...prev,
