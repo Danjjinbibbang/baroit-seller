@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Store, StoreBasicInfo } from "@/components/store/StoreBasicInfo";
+import { StoreBasicInfo } from "@/components/store/StoreBasicInfo";
 import { StoreBusinessHours } from "@/components/store/StoreBusinessHours";
 import { StoreStatusSetting } from "@/components/store/StoreStatus";
 import { HomeCategories } from "@/components/store/HomeCategory";
