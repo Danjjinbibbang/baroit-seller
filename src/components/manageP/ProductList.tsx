@@ -1,6 +1,6 @@
 import React from "react";
 import { Search, Plus, ChevronDown } from "lucide-react";
-import { Product } from "@/components/product/ProductDetail";
+import { Product } from "@/types/product";
 // 임시 카테고리 데이터
 const productCategories = [
   "과일/채소",

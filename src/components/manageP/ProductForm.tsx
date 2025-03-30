@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, X, Upload } from "lucide-react";
-import { Product, ProductOption } from "@/components/product/ProductDetail";
+import { Product, ProductOption } from "@/types/product";
 
 // 임시 카테고리 데이터
 const productCategories = [
@@ -48,7 +48,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   if (!product) return null;
 
   const handleTempOptionValuesChange = (index: number, valuesText: string) => {
-    const values = valuesText.split(",").map((v) => v.trim());
+    //const values = valuesText.split(",").map((v) => v.trim());
     const newTempValues = [...tempOptionValues];
     newTempValues[index] = valuesText;
     setTempOptionValues(newTempValues);
