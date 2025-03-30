@@ -324,7 +324,7 @@ export default function AddressFormModal({
                   ? "직접 입력"
                   : formData.deliveryGuideMessage
               }
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 if (value === "직접 입력") {
                   setIsCustomMessageSelected(true);
                 } else {
