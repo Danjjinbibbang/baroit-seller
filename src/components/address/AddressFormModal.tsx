@@ -275,6 +275,7 @@ export default function AddressFormModal({
                       },
                       (error) => {
                         setAddressError("위치 정보를 가져올 수 없습니다.");
+                        console.error("위치 정보 가져오기 오류:", error);
                       }
                     );
                   } else {
