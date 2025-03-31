@@ -14,13 +14,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-
 export const metadata: Metadata = {
   title: "baroit for seller",
   description: "baroit",
-  icons: {
-    icon: "/baroit_favicon.png",
-  },
 };
 
 export default function RootLayout({
@@ -28,7 +24,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
     <html lang="en">
       <body
