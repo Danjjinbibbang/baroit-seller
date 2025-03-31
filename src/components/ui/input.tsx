@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
-  // 추가 속성이 필요하면 여기에 정의
+  type?: string; // 기본값을 지정하기 위해 추가
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
