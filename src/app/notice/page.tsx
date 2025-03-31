@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash, X } from "lucide-react";
 
 // 임시 공지 데이터
