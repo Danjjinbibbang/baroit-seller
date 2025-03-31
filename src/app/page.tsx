@@ -1,7 +1,5 @@
 "use client";
 import React from "react";
-import { ChevronRight, Store, FileText, TrendingUp } from "lucide-react";
-
 // 임시 데이터
 const orderStats = {
   newOrders: 1,
