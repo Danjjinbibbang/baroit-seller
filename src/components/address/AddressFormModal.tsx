@@ -149,8 +149,8 @@ export default function AddressFormModal({
         const addressInfo = data.documents[0];
         let roadAddress = "";
         let jibunAddress = "";
-        let latitude = location.lat;
-        let longitude = location.lng;
+        const latitude = location.lat;
+        const longitude = location.lng;
 
         if (addressInfo.road_address) {
           roadAddress = addressInfo.road_address.address_name;
@@ -204,7 +204,7 @@ export default function AddressFormModal({
             <Label htmlFor="alias">배송지 구분</Label>
             <Select
               value={isOtherSelected ? "기타" : formData.alias}
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 if (value === "기타") {
                   setIsOtherSelected(true);
                 } else {
@@ -324,7 +324,7 @@ export default function AddressFormModal({
                   ? "직접 입력"
                   : formData.deliveryGuideMessage
               }
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 if (value === "직접 입력") {
                   setIsCustomMessageSelected(true);
                 } else {
