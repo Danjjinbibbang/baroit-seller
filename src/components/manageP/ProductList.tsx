@@ -1,17 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { Search, Plus, ChevronDown } from "lucide-react";
 import { Product } from "@/types/product";
+import { getCategories } from "@/utils/category";
+import { useQuery } from "@tanstack/react-query";
+
+interface Category {
+  id: number;
+  name: string;
+  depth: number;
+  fullPath: string;
+  displayOrder: number;
+  active: boolean;
+  children: Category[];
+}
+
 // 임시 카테고리 데이터
-const productCategories = [
-  "과일/채소",
-  "정육/계란",
-  "수산/해산물",
-  "간편식/반찬",
-  "음료/커피/차",
-  "과자/빵/디저트",
-  "건강식품",
-  "생활용품",
-];
+//const productCategories = [
+//   "과일/채소",
+//   "정육/계란",
+//   "수산/해산물",
+//   "간편식/반찬",
+//   "음료/커피/차",
+//   "과자/빵/디저트",
+//   "건강식품",
+//   "생활용품",
+// ];
 
 const storeCategories = [
   "신상품",
@@ -62,6 +75,18 @@ const ProductList: React.FC<ProductListProps> = ({
   onDeleteProducts,
   onResetSearch,
 }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await getCategories();
+      const data = await res.json();
+      return data.data.categories;
+    },
+    staleTime: 1000 * 60 * 5, // 5분간 캐싱
+  });
+
+  const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
+
   return (
     <div className="px-4 py-4 border-b space-y-4 bg-white rounded-t-lg">
       {/* 검색 및 필터 영역 */}
@@ -121,23 +146,67 @@ const ProductList: React.FC<ProductListProps> = ({
             판매종료
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           <span className="text-sm font-medium">상품 카테고리</span>
           <div className="relative">
+            {/* Depth 1 Select */}
             <select
               className="px-3 py-1.5 border rounded-full text-sm appearance-none pr-8"
               value={selectedCategory}
               onChange={(e) => onSelectCategory(e.target.value)}
+              onMouseLeave={() => setHoveredCategory(null)}
             >
               <option value="">상품 카테고리 선택</option>
-              {productCategories.map((category, idx) => (
-                <option key={idx} value={category}>
-                  {category}
+              {data?.map((depth1: Category) => (
+                <option
+                  key={depth1.id}
+                  value={depth1.name}
+                  onMouseEnter={() => setHoveredCategory(depth1.id)}
+                >
+                  {depth1.name}
                 </option>
               ))}
             </select>
             <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
+
+          {/* Depth 2 Hover Box */}
+          {hoveredCategory &&
+            data?.find((d: Category) => d.id === hoveredCategory)?.children
+              ?.length > 0 && (
+              <div className="absolute top-full left-40 mt-2 p-2 border bg-white rounded-md shadow z-10">
+                {data
+                  ?.find((d: Category) => d.id === hoveredCategory)
+                  ?.children.map((depth2: Category) => (
+                    <div
+                      key={depth2.id}
+                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                      onMouseEnter={() => setHoveredCategory(depth2.id)}
+                      onClick={() => onSelectCategory(depth2.fullPath)}
+                    >
+                      {depth2.name}
+
+                      {/* Depth 3 */}
+                      {depth2.children.length > 0 &&
+                        hoveredCategory === depth2.id && (
+                          <div className="absolute top-0 left-full ml-2 p-2 border bg-white rounded-md shadow z-10">
+                            {depth2.children.map((depth3: Category) => (
+                              <div
+                                key={depth3.id}
+                                className="px-2 py-1 hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+                                onClick={() =>
+                                  onSelectCategory(depth3.fullPath)
+                                }
+                              >
+                                {depth3.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  ))}
+              </div>
+            )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">가게홈 카테고리</span>

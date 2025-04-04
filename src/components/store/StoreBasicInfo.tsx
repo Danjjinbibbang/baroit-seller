@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { registerStore } from "@/utils/store"; // 등록 API
 import { Button } from "@/components/ui/button";
 import { AddressSearch } from "../address/AddressSearch";
-import { MapPin } from "lucide-react";
 import { CurrentLocation } from "../address/CurrentLocation";
+import { StoreBusinessHours } from "./StoreBusinessHours";
+import { StoreStatusSetting, StoreStatus } from "./StoreStatus";
+import { DayOfWeek } from "@/utils/store";
 
 export interface StoreInfo {
   name: string;
@@ -18,9 +20,19 @@ export interface StoreInfo {
   longitude: number;
   jibun: string;
   road: string;
-  orderType: "DELIVERY" | "PICKUP" | "BOTH";
-  deliveryType: "SELF" | "AGENCY" | "BOTH";
   minOrderPrice: number;
+  deliveryType: string;
+  deliveryTimeEstimate: number;
+  deliveryPickup: number;
+  businessHoursMode: string;
+  timeSlots: Record<DayOfWeek, TimeSlotItem>;
+  workCondition: string;
+  status: StoreStatus;
+}
+
+export interface TimeSlotItem {
+  startTime: string;
+  endTime: string;
 }
 
 export function StoreBasicInfo() {
@@ -35,9 +47,22 @@ export function StoreBasicInfo() {
     longitude: 0,
     jibun: "",
     road: "",
-    orderType: "DELIVERY",
-    deliveryType: "SELF",
-    minOrderPrice: 15000,
+    minOrderPrice: 0,
+    deliveryType: "",
+    deliveryTimeEstimate: 0,
+    deliveryPickup: 0,
+    businessHoursMode: "PER_DAY",
+    timeSlots: {
+      MONDAY: { startTime: "10:00", endTime: "22:00" },
+      TUESDAY: { startTime: "10:00", endTime: "22:00" },
+      WEDNESDAY: { startTime: "10:00", endTime: "22:00" },
+      THURSDAY: { startTime: "10:00", endTime: "22:00" },
+      FRIDAY: { startTime: "10:00", endTime: "22:00" },
+      SATURDAY: { startTime: "10:00", endTime: "22:00" },
+      SUNDAY: { startTime: "10:00", endTime: "22:00" },
+    },
+    workCondition: "OPEN",
+    status: "INACTIVE",
   });
 
   const [isEditing, setIsEditing] = useState(true); // 기본값은 편집 가능 상태
@@ -45,60 +70,6 @@ export function StoreBasicInfo() {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
-
-  // 현재 위치를 받아와서 주소로 변환하는 함수
-  const handleLocationDetected = async (location: {
-    lat: number;
-    lng: number;
-  }) => {
-    setIsLoadingAddress(true);
-    setAddressError(null);
-
-    try {
-      const response = await fetch(
-        `/api/address/reverse-geocode?lat=${location.lat}&lng=${location.lng}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "주소를 가져오는데 실패했습니다.");
-      }
-
-      const data = await response.json();
-
-      if (data.documents && data.documents.length > 0) {
-        const addressInfo = data.documents[0];
-        let roadAddress = "";
-        let jibunAddress = "";
-        const latitude = location.lat;
-        const longitude = location.lng;
-        console.log(latitude, longitude);
-
-        if (addressInfo.road_address) {
-          roadAddress = addressInfo.road_address.address_name;
-        }
-        if (addressInfo.address) {
-          jibunAddress = addressInfo.address.address_name;
-        }
-
-        setStoreInfo({
-          ...storeInfo,
-          road: roadAddress,
-          jibun: jibunAddress,
-          latitude: latitude,
-          longitude: longitude,
-        });
-      } else {
-        setAddressError("주소를 찾을 수 없습니다.");
-      }
-    } catch (error) {
-      console.error("주소 변환 오류:", error);
-      setAddressError("주소를 가져오는데 실패했습니다.");
-    } finally {
-      setIsLoadingAddress(false);
-      setShowAddressSearch(false);
-    }
-  };
 
   // 주소 검색 결과 처리
   interface AddressData {
@@ -274,29 +245,85 @@ export function StoreBasicInfo() {
         />
       </div>
 
-      {/* 주문 정보 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* 배달 및 시간 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            주문 유형
+            배달 예상 시간 (분)
           </label>
-          <select
-            value={storeInfo.orderType}
+          <input
+            type="number"
+            value={storeInfo.deliveryTimeEstimate}
             onChange={(e) =>
               setStoreInfo((prev) => ({
                 ...prev,
-                orderType: e.target.value as StoreInfo["orderType"],
+                deliveryTimeEstimate: Number(e.target.value),
               }))
             }
             disabled={!isEditing}
             className="w-full p-2 border rounded-md"
-          >
-            <option value="DELIVERY">배달</option>
-            <option value="PICKUP">포장</option>
-            <option value="BOTH">배달/포장</option>
-          </select>
+          />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            포장 소요 시간 (분)
+          </label>
+          <input
+            type="number"
+            value={storeInfo.deliveryPickup}
+            onChange={(e) =>
+              setStoreInfo((prev) => ({
+                ...prev,
+                deliveryPickup: Number(e.target.value),
+              }))
+            }
+            disabled={!isEditing}
+            className="w-full p-2 border rounded-md"
+          />
+        </div>
+      </div>
+
+      {/* 영업 시간 설정 - StoreBusinessHours 컴포넌트 사용 */}
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">
+          영업 시간 설정
+        </label>
+
+        <StoreBusinessHours
+          isEditing={isEditing}
+          initialBusinessHours={storeInfo?.timeSlots}
+          initialMode={storeInfo?.businessHoursMode}
+          onChange={(businessHoursMode, timeSlots) => {
+            setStoreInfo((prev) => ({
+              ...prev,
+              businessHoursMode,
+              timeSlots,
+            }));
+          }}
+        />
+      </div>
+
+      {/* 영업 상태 설정 - StoreStatusSetting 컴포넌트 사용 */}
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">
+          영업 상태 설정
+        </label>
+
+        <StoreStatusSetting
+          isEditing={isEditing}
+          initialStatus={storeInfo?.status}
+          onChange={(status) => {
+            setStoreInfo((prev) => ({
+              ...prev,
+              status,
+            }));
+          }}
+        />
+      </div>
+
+      {/* 주문 유형 및 최소 주문 금액 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             배달 유형
@@ -306,21 +333,22 @@ export function StoreBasicInfo() {
             onChange={(e) =>
               setStoreInfo((prev) => ({
                 ...prev,
-                deliveryType: e.target.value as StoreInfo["deliveryType"],
+                deliveryType: e.target.value,
               }))
             }
             disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           >
-            <option value="SELF">자체배달</option>
-            <option value="AGENCY">배달대행</option>
-            <option value="BOTH">자체/대행</option>
+            <option value="">선택하세요</option>
+            <option value="DELIVERY">배달</option>
+            <option value="AGENCY">픽업</option>
+            <option value="OWN_DELIVERY">자체/대행</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            최소주문금액
+            최소주문금액 (원)
           </label>
           <input
             type="number"
@@ -336,6 +364,7 @@ export function StoreBasicInfo() {
           />
         </div>
       </div>
+
       {/* 주소 검색 모달 */}
       {showAddressSearch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

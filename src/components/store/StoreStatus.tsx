@@ -6,41 +6,62 @@ import { updateStoreStatus } from "@/utils/store";
 export type StoreStatus = "ACTIVE" | "INACTIVE";
 
 interface Props {
-  storeId: number | null;
+  storeId?: number | null;
+  isEditing?: boolean;
+  onChange: (storeStatus: StoreStatus) => void;
+  initialStatus?: StoreStatus;
 }
 
-export function StoreStatusSetting({ storeId }: Props) {
-  const [storeStatus, setStoreStatus] = useState<StoreStatus>("INACTIVE");
-  const [isEditing, setIsEditing] = useState(false);
+export function StoreStatusSetting({
+  storeId,
+  isEditing: externalIsEditing,
+  onChange,
+  initialStatus,
+}: Props) {
+  const [internalIsEditing, setInternalIsEditing] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<StoreStatus>(
+    initialStatus || "ACTIVE"
+  );
   const [isLoading, setIsLoading] = useState(false);
+  const isEditing =
+    externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
+
+  // 초기값이 변경될 때 상태 업데이트
+  useEffect(() => {
+    if (initialStatus) {
+      setStoreStatus(initialStatus);
+    }
+  }, [initialStatus]);
 
   // storeId 변경될 때 상태 불러오기
-  useEffect(() => {
-    const fetchStatus = async () => {
-      if (!storeId) return;
+  // useEffect(() => {
+  //   const fetchStatus = async () => {
+  //     if (!storeId) return;
 
-      try {
-        const response = await fetch(`/api/stores/${storeId}/status`);
-        if (response.ok) {
-          const data = await response.json();
-          setStoreStatus(data.status);
-        }
-      } catch (error) {
-        console.error("가게 상태 불러오기 실패:", error);
-      }
-    };
+  //     try {
+  //       const response = await fetch(`/api/stores/${storeId}/status`);
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         setStoreStatus(data.status);
+  //       }
+  //     } catch (error) {
+  //       console.error("가게 상태 불러오기 실패:", error);
+  //     }
+  //   };
 
-    fetchStatus();
-  }, [storeId]);
+  //   fetchStatus();
+  // }, [storeId]);
 
   const handleSave = async () => {
-    if (!storeId) return;
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
-      await updateStoreStatus(storeId, storeStatus);
-      alert("가게 상태가 저장되었습니다.");
-      setIsEditing(false);
+      if (storeId) {
+        await updateStoreStatus(storeId, storeStatus);
+        alert("가게 상태가 저장되었습니다.");
+      }
+      onChange(storeStatus);
+      setInternalIsEditing(false);
     } catch (error) {
       console.error("가게 상태 저장 실패:", error);
       alert("저장에 실패했습니다.");
@@ -56,7 +77,7 @@ export function StoreStatusSetting({ storeId }: Props) {
         {isEditing ? (
           <div className="flex gap-2">
             <button
-              onClick={() => setIsEditing(false)}
+              onClick={() => setInternalIsEditing(false)}
               className="px-4 py-2 border rounded-md hover:bg-gray-50"
             >
               취소
@@ -71,7 +92,7 @@ export function StoreStatusSetting({ storeId }: Props) {
           </div>
         ) : (
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => setInternalIsEditing(true)}
             className="px-3 py-1.5 border rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100"
           >
             수정

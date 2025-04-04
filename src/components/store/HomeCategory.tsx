@@ -11,7 +11,6 @@ import {
 interface HomeCategory {
   id: number;
   name: string;
-  displayOrder: number;
 }
 
 interface Props {
@@ -21,7 +20,6 @@ interface Props {
 export function HomeCategories({ storeId }: Props) {
   const [homeCategories, setHomeCategories] = useState<HomeCategory[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryOrder, setNewCategoryOrder] = useState(1);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
     null
@@ -33,7 +31,12 @@ export function HomeCategories({ storeId }: Props) {
 
       try {
         const categories = await getHomeCategories(storeId);
-        setHomeCategories(categories);
+        setHomeCategories(
+          categories.map((category) => ({
+            id: category.id,
+            name: category.name,
+          }))
+        );
       } catch (error) {
         console.error("홈 카테고리 불러오기 실패:", error);
       }
@@ -48,12 +51,10 @@ export function HomeCategories({ storeId }: Props) {
     try {
       const newCategory = await createHomeCategory(storeId, {
         name: newCategoryName,
-        displayOrder: newCategoryOrder,
       });
 
       setHomeCategories((prev) => [...prev, newCategory]);
       setNewCategoryName("");
-      setNewCategoryOrder(1);
     } catch (error) {
       console.error("홈 카테고리 생성 실패:", error);
       alert(error instanceof Error ? error.message : "생성에 실패했습니다.");
@@ -66,7 +67,6 @@ export function HomeCategories({ storeId }: Props) {
     try {
       await updateHomeCategory(storeId, editingCategoryId, {
         name: newCategoryName,
-        displayOrder: newCategoryOrder,
       });
 
       setHomeCategories((prev) =>
@@ -75,7 +75,6 @@ export function HomeCategories({ storeId }: Props) {
             ? {
                 ...category,
                 name: newCategoryName,
-                displayOrder: newCategoryOrder,
               }
             : category
         )
@@ -84,7 +83,6 @@ export function HomeCategories({ storeId }: Props) {
       setIsEditingCategory(false);
       setEditingCategoryId(null);
       setNewCategoryName("");
-      setNewCategoryOrder(1);
     } catch (error) {
       console.error("홈 카테고리 수정 실패:", error);
       alert(error instanceof Error ? error.message : "수정에 실패했습니다.");
@@ -116,13 +114,6 @@ export function HomeCategories({ storeId }: Props) {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
           />
-          <input
-            type="number"
-            placeholder="디스플레이 순서"
-            className="w-24 p-2 border rounded-md"
-            value={newCategoryOrder}
-            onChange={(e) => setNewCategoryOrder(Number(e.target.value))}
-          />
           <button
             onClick={isEditingCategory ? handleEditCategory : handleAddCategory}
             className="px-4 py-2 bg-blue-500 text-white rounded-md"
@@ -134,16 +125,12 @@ export function HomeCategories({ storeId }: Props) {
         <ul className="list-disc pl-5 space-y-2">
           {homeCategories.map((category) => (
             <li key={category.id} className="flex justify-between items-center">
-              <span>
-                {category.name} (순서: {category.displayOrder})
-              </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setIsEditingCategory(true);
                     setEditingCategoryId(category.id);
                     setNewCategoryName(category.name);
-                    setNewCategoryOrder(category.displayOrder);
                   }}
                   className="text-blue-500"
                 >

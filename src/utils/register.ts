@@ -15,7 +15,7 @@ export async function registerCustomer(
   data: CustomerSignUpData
 ): Promise<SignUpResponse> {
   try {
-    const response = await fetch("/api/auth/customers/sign-up", {
+    const response = await fetch(`/api/auth/customers/sign-up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

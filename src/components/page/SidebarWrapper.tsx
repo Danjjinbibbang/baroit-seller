@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // 메뉴 데이터
 const menuItems = [
@@ -94,76 +95,80 @@ export default function SidebarWrapper({
     setSidebarOpen(!sidebarOpen);
   };
 
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <div className="flex min-h-screen bg-gray-50 relative">
-      {/* 모바일 헤더 (햄버거 메뉴) */}
-      {showSidebar && isMobile && (
-        <div className="fixed top-0 left-0 right-0 bg-white h-14 z-30 border-b px-4 flex items-center">
-          <button onClick={toggleSidebar} className="p-2">
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <div className="ml-4">
-            <img src="/baroit.png" alt="logo" className="h-8" />
+    <QueryClientProvider client={queryClient}>
+      <div className="flex min-h-screen bg-gray-50 relative">
+        {/* 모바일 헤더 (햄버거 메뉴) */}
+        {showSidebar && isMobile && (
+          <div className="fixed top-0 left-0 right-0 bg-white h-14 z-30 border-b px-4 flex items-center">
+            <button onClick={toggleSidebar} className="p-2">
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <div className="ml-4">
+              <img src="/baroit.png" alt="logo" className="h-8" />
+            </div>
+          </div>
+        )}
+
+        {/* 사이드바 (조건부 렌더링) */}
+        {showSidebar && sidebarOpen && (
+          <div
+            className={`${
+              isMobile ? "fixed z-20 top-14 bottom-0 left-0" : "sticky top-0"
+            } w-64 bg-white border-r min-h-screen transition-all duration-300`}
+          >
+            {!isMobile && (
+              <div className="px-4 py-2 border-b flex justify-center items-center h-50">
+                <img src="/baroit.png" alt="logo" className="w-30 h-15" />
+              </div>
+            )}
+            <nav className="p-4">
+              <ul className="space-y-2">
+                {menuItems.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center p-2 rounded-lg w-full text-left hover:bg-gray-100 text-gray-900"
+                      onClick={() => isMobile && setSidebarOpen(false)} // 모바일에서 메뉴 클릭 시 사이드바 닫기
+                    >
+                      {React.cloneElement(item.icon, {
+                        className: `w-5 h-5 mr-3 text-gray-500`,
+                      })}
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+        )}
+
+        {/* 오버레이 (모바일에서 사이드바 열릴 때) */}
+        {showSidebar && isMobile && sidebarOpen && (
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* 메인 콘텐츠 */}
+        <div
+          className={`flex-1 flex flex-col overflow-x-auto ${
+            !showSidebar ? "w-full" : ""
+          } ${isMobile ? "pt-14" : ""}`}
+        >
+          <div className="min-w-max">
+            {/* 헤더 (데스크톱에서 사이드바가 있을 때만 표시) */}
+            {showSidebar && !isMobile && (
+              <header className="bg-white min-w-full px-6 py-4 h-12 border-b flex-shrink-0" />
+            )}
+            {/* 메인 콘텐츠 영역 */}
+            <div className="flex-1 p-6">{children}</div>
           </div>
         </div>
-      )}
-
-      {/* 사이드바 (조건부 렌더링) */}
-      {showSidebar && sidebarOpen && (
-        <div
-          className={`${
-            isMobile ? "fixed z-20 top-14 bottom-0 left-0" : "sticky top-0"
-          } w-64 bg-white border-r min-h-screen transition-all duration-300`}
-        >
-          {!isMobile && (
-            <div className="px-4 py-2 border-b flex justify-center items-center h-50">
-              <img src="/baroit.png" alt="logo" className="w-30 h-15" />
-            </div>
-          )}
-          <nav className="p-4">
-            <ul className="space-y-2">
-              {menuItems.map((item) => (
-                <li key={item.id}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center p-2 rounded-lg w-full text-left hover:bg-gray-100 text-gray-900"
-                    onClick={() => isMobile && setSidebarOpen(false)} // 모바일에서 메뉴 클릭 시 사이드바 닫기
-                  >
-                    {React.cloneElement(item.icon, {
-                      className: `w-5 h-5 mr-3 text-gray-500`,
-                    })}
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      )}
-
-      {/* 오버레이 (모바일에서 사이드바 열릴 때) */}
-      {showSidebar && isMobile && sidebarOpen && (
-        <div
-          className="fixed inset-0 z-10"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* 메인 콘텐츠 */}
-      <div
-        className={`flex-1 flex flex-col overflow-x-auto ${
-          !showSidebar ? "w-full" : ""
-        } ${isMobile ? "pt-14" : ""}`}
-      >
-        <div className="min-w-max">
-          {/* 헤더 (데스크톱에서 사이드바가 있을 때만 표시) */}
-          {showSidebar && !isMobile && (
-            <header className="bg-white min-w-full px-6 py-4 h-12 border-b flex-shrink-0" />
-          )}
-          {/* 메인 콘텐츠 영역 */}
-          <div className="flex-1 p-6">{children}</div>
-        </div>
       </div>
-    </div>
+    </QueryClientProvider>
   );
 }

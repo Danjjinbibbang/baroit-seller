@@ -48,6 +48,19 @@ export function AddressSearch({
           `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_APP_KEY_JAVASCRIPT}&autoload=false&libraries=services`
         );
 
+        // 3. kakao.maps.load 호출 전에 준비 상태 체크
+        const waitForKakao = () =>
+          new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+              if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 100);
+          });
+
+        await waitForKakao();
+
         // 3. kakao.maps 로드 (Geocoder 포함)
         window.kakao.maps.load(() => {
           console.log("카카오맵 services 로드 완료");

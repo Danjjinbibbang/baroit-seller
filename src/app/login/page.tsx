@@ -45,6 +45,7 @@ export default function LoginPage() {
 
       // 로그인 성공 시 메인 페이지로 리다이렉트
       if (response != null) {
+        console.log("사업자 로그인 응답: ", response);
         window.location.href = "/";
       }
     } catch (err: unknown) {
