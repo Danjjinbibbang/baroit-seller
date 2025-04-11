@@ -9,8 +9,8 @@ import {
 } from "@/utils/store";
 
 interface HomeCategory {
-  id: number;
-  name: string;
+  storeCategoryId: number;
+  categoryName: string;
 }
 
 interface Props {
@@ -32,13 +32,16 @@ export function HomeCategories({ storeId }: Props) {
       try {
         const categories = await getHomeCategories(storeId);
         setHomeCategories(
-          categories.map((category) => ({
-            id: category.id,
-            name: category.name,
+          categories.data.categories.map((category) => ({
+            storeCategoryId: category.id,
+            categoryName: category.name,
           }))
         );
       } catch (error) {
         console.error("홈 카테고리 불러오기 실패:", error);
+        if (error instanceof Error && error.message.includes("401")) {
+          alert("인증 오류가 발생했습니다. 다시 로그인 해주세요.");
+        }
       }
     };
 
@@ -52,8 +55,14 @@ export function HomeCategories({ storeId }: Props) {
       const newCategory = await createHomeCategory(storeId, {
         name: newCategoryName,
       });
-
-      setHomeCategories((prev) => [...prev, newCategory]);
+      console.log("newCategory", newCategory);
+      setHomeCategories((prev) => [
+        ...prev,
+        {
+          storeCategoryId: newCategory.data.storeCategoryId,
+          categoryName: newCategory.data.categoryName,
+        },
+      ]);
       setNewCategoryName("");
     } catch (error) {
       console.error("홈 카테고리 생성 실패:", error);
@@ -71,10 +80,10 @@ export function HomeCategories({ storeId }: Props) {
 
       setHomeCategories((prev) =>
         prev.map((category) =>
-          category.id === editingCategoryId
+          category.storeCategoryId === editingCategoryId
             ? {
                 ...category,
-                name: newCategoryName,
+                categoryName: newCategoryName,
               }
             : category
         )
@@ -94,7 +103,9 @@ export function HomeCategories({ storeId }: Props) {
 
     try {
       await deleteHomeCategory(storeId, categoryId);
-      setHomeCategories((prev) => prev.filter((c) => c.id !== categoryId));
+      setHomeCategories((prev) =>
+        prev.filter((c) => c.storeCategoryId !== categoryId)
+      );
     } catch (error) {
       console.error("홈 카테고리 삭제 실패:", error);
       alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
@@ -124,20 +135,23 @@ export function HomeCategories({ storeId }: Props) {
 
         <ul className="list-disc pl-5 space-y-2">
           {homeCategories.map((category) => (
-            <li key={category.id} className="flex justify-between items-center">
+            <li
+              key={category.storeCategoryId}
+              className="flex justify-between items-center"
+            >
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setIsEditingCategory(true);
-                    setEditingCategoryId(category.id);
-                    setNewCategoryName(category.name);
+                    setEditingCategoryId(category.storeCategoryId);
+                    setNewCategoryName(category.categoryName);
                   }}
                   className="text-blue-500"
                 >
                   수정
                 </button>
                 <button
-                  onClick={() => handleDeleteCategory(category.id)}
+                  onClick={() => handleDeleteCategory(category.storeCategoryId)}
                   className="text-red-500"
                 >
                   삭제

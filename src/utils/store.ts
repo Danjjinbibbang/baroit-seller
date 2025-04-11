@@ -19,30 +19,52 @@ export interface BusinessHours {
   timeSlots: Record<DayOfWeek, TimeSlot>;
 }
 
-// 영업시간 업데이트 API
-export async function updateBusinessHours(
-  storeId: number,
-  businessHours: BusinessHours
-): Promise<void> {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/business-hours`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(businessHours),
-      credentials: "include",
-    }
-  );
+interface StoreData {
+  name: string;
+  detailed: string;
+  tel: string;
+  bizNumber: string;
+  addressCode: string;
+  addressDetail: string;
+  jibun: string;
+  road: string;
+  latitude: number;
+  longitude: number;
+  minOrderPrice: number;
+  deliveryType: string;
+  deliveryTimeEstimate: number;
+  deliveryPickup: number;
+  businessHoursMode: string;
+  timeSlots: Record<DayOfWeek, TimeSlot>;
+  workCondition: string;
+  status: string;
+}
 
-  if (!response.ok) {
-    throw new Error("영업시간 수정에 실패했습니다.");
-  }
+interface CategoryResponse {
+  success: boolean;
+  data: {
+    storeCategoryId: number;
+    categoryName: string;
+  };
+}
+
+interface HomeCategoryResponse {
+  success: boolean;
+  data: {
+    storeId: number;
+    categories: categories[];
+  };
+}
+
+interface categories {
+  id: number;
+  name: string;
 }
 
 // 가게 등록 API
-export async function registerStore(storeData: any): Promise<any> {
+export async function registerStore(
+  storeData: StoreData
+): Promise<{ storeId: number }> {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/stores`,
     {
@@ -54,15 +76,15 @@ export async function registerStore(storeData: any): Promise<any> {
       credentials: "include",
     }
   );
-
-  if (!response.ok) {
+  const data = await response.json();
+  if (!data.success) {
     throw new Error("가게 등록에 실패했습니다.");
   }
 
-  return response.json();
+  return data;
 }
 
-// 가게 상태 변경
+// 가게 운영 상태 변경
 export async function updateStoreStatus(
   storeId: number,
   workCondition: string
@@ -78,8 +100,9 @@ export async function updateStoreStatus(
       credentials: "include",
     }
   );
+  const data = await response.json();
 
-  if (!response.ok) {
+  if (!data.success) {
     throw new Error("가게 영업 상태 변경에 실패했습니다.");
   }
 }
@@ -95,14 +118,38 @@ export async function updateStoreExposure(
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        credentials: "include",
       },
       body: JSON.stringify({ status }),
+      credentials: "include",
     }
   );
+  const data = await response.json();
 
-  if (!response.ok) {
+  if (!data.success) {
     throw new Error("가게 노출 상태 수정에 실패했습니다.");
+  }
+}
+
+//가게 영업시간 수정
+export async function updateBusinessHours(
+  storeId: number,
+  businessHours: BusinessHours
+): Promise<void> {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/business-hours`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(businessHours),
+      credentials: "include",
+    }
+  );
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error("가게 영업시간 수정에 실패했습니다.");
   }
 }
 
@@ -110,7 +157,7 @@ export async function updateStoreExposure(
 export async function createHomeCategory(
   storeId: number,
   categoryData: { name: string }
-): Promise<any> {
+): Promise<CategoryResponse> {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/categories`,
     {
@@ -122,32 +169,36 @@ export async function createHomeCategory(
       credentials: "include",
     }
   );
+  const data = await response.json();
 
-  if (!response.ok) {
+  if (!data.success) {
     throw new Error("가게 홈 카테고리 생성에 실패했습니다.");
   }
+
+  return data;
 }
 
 // 가게 홈 카테고리 조회 API
 export async function getHomeCategories(
   storeId: number
-): Promise<{ id: number; name: string }[]> {
+): Promise<HomeCategoryResponse> {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/categories`,
     {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        credentials: "include",
       },
+      credentials: "include",
     }
   );
 
-  if (!response.ok) {
+  const data = await response.json();
+  if (!data.success) {
     throw new Error("가게 홈 카테고리 조회에 실패했습니다.");
   }
 
-  return response.json();
+  return data;
 }
 
 // 가게 홈 카테고리 삭제 API
@@ -165,8 +216,8 @@ export async function deleteHomeCategory(
       },
     }
   );
-
-  if (!response.ok) {
+  const data = await response.json();
+  if (!data.success) {
     throw new Error("가게 홈 카테고리 삭제에 실패했습니다.");
   }
 }
@@ -188,8 +239,8 @@ export async function updateHomeCategory(
       credentials: "include",
     }
   );
-
-  if (!response.ok) {
+  const data = await response.json();
+  if (!data.success) {
     throw new Error("가게 홈 카테고리 수정에 실패했습니다.");
   }
 }

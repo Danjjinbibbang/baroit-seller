@@ -41,6 +41,7 @@ export default function LoginPage() {
 
     try {
       const loginData = { loginId: userId, password };
+      console.log("로그인 데이터: ", loginData);
       const response = await loginBusiness(loginData);
 
       // 로그인 성공 시 메인 페이지로 리다이렉트

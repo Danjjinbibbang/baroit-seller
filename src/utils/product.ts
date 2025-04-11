@@ -39,6 +39,38 @@ export interface optionValues {
   optionValue: string;
 }
 
+interface GetProductResponse {
+  success: boolean;
+  data: {
+    storeId: number;
+    name: string;
+    description: string;
+    registeredId: string;
+    fulfillmentMethod: "DELIVERY_ONLY";
+    hasOption: boolean;
+    originalPrice: number | null;
+    sellingPrice: number | null;
+    stock: number | null;
+    displayCategoryId: number;
+    storeCategoryIds: number[];
+    options: {
+      optionId: number;
+      optionName: string;
+      values: {
+        optionValueId: number;
+        value: string;
+      }[];
+    }[];
+    variants: {
+      id: number;
+      displayName: string;
+      originalPrice: number;
+      sellingPrice: number;
+      stock: number;
+    }[];
+  };
+}
+
 // export interface ProductOption {
 //   values: string[]; // 단일 옵션이라도 배열로 구성됨
 //   originalPrice: number;
@@ -63,15 +95,18 @@ export async function postSingleProduct(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(productData),
+      credentials: "include",
     }
   );
 
-  if (!res.ok) {
+  const data = await res.json();
+
+  if (!data.success) {
     const error = await res.json();
     throw new Error(error.message || "상품 등록에 실패했습니다.");
   }
 
-  return res;
+  return data;
 }
 
 // 옵션 상품 등록
@@ -87,29 +122,43 @@ export async function postOptionProduct(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(productData),
+      credentials: "include",
     }
   );
 
-  if (!res.ok) {
+  const data = await res.json();
+
+  if (!data.success) {
     const error = await res.json();
     throw new Error(error.message || "상품 등록에 실패했습니다.");
   }
 
-  return res;
+  return data;
 }
 // 상품 조회
 export async function getProduct(
   storeId: number,
-  productId: number
-): Promise<Response> {
+  productId: number,
+  ownerId: number
+): Promise<GetProductResponse> {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/products/${productId}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/products/${productId}?ownerId=${ownerId}`,
+    {
+      method: "GET",
+      headers: {
+        "X-Owner-Id": ownerId.toString(),
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    }
   );
 
-  if (!res.ok) {
+  const data = await res.json();
+
+  if (!data.success) {
     const error = await res.json();
     throw new Error(error.message || "상품 조회에 실패했습니다.");
   }
 
-  return res;
+  return data;
 }

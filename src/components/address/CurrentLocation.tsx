@@ -86,20 +86,52 @@ export function CurrentLocation({
           (result: any, status: any) => {
             if (status === window.kakao.maps.services.Status.OK) {
               const addressInfo = result[0];
-              const addressData: AddressData = {
-                roadAddress: addressInfo.road_address
-                  ? addressInfo.road_address.address_name
-                  : "",
-                jibunAddress: addressInfo.address.address_name,
-                zonecode: "", // 좌표->주소 변환에서는 우편번호 없음
-                latitude: latitude,
-                longitude: longitude,
-              };
-              onSelectAddress(addressData);
+              const jibunAddress = addressInfo.address.address_name;
+              const roadAddress = addressInfo.road_address
+                ? addressInfo.road_address.address_name
+                : "";
+
+              // 도로명 주소나 지번 주소를 이용해 우편번호를 포함한 상세 정보 검색
+              geocoder.addressSearch(
+                roadAddress || jibunAddress,
+                (searchResult: any, searchStatus: any) => {
+                  if (searchStatus === window.kakao.maps.services.Status.OK) {
+                    const fullAddressInfo = searchResult[0];
+                    console.log("fullAddressInfo:", fullAddressInfo);
+                    const addressData: AddressData = {
+                      roadAddress:
+                        roadAddress ||
+                        fullAddressInfo.road_address?.address_name ||
+                        "",
+                      jibunAddress: jibunAddress,
+                      zonecode: fullAddressInfo.road_address?.zone_no || "",
+                      latitude: latitude,
+                      longitude: longitude,
+                    };
+                    console.log("주소 검색 결과:", addressData);
+                    onSelectAddress(addressData);
+                  } else {
+                    // 주소 검색 실패 시 우편번호 없이 진행
+                    const addressData: AddressData = {
+                      roadAddress: roadAddress || "",
+                      jibunAddress: jibunAddress,
+                      zonecode: "",
+                      latitude: latitude,
+                      longitude: longitude,
+                    };
+
+                    onSelectAddress(addressData);
+                    console.warn(
+                      "주소 검색에서 우편번호를 가져오지 못했습니다."
+                    );
+                  }
+                  setIsLoading(false);
+                }
+              );
             } else {
               setError("주소를 찾을 수 없습니다.");
+              setIsLoading(false);
             }
-            setIsLoading(false);
           }
         );
       },

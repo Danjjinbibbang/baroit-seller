@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { AddressSearch } from "../address/AddressSearch";
 import { CurrentLocation } from "../address/CurrentLocation";
 import { StoreBusinessHours } from "./StoreBusinessHours";
-import { StoreStatusSetting, StoreStatus } from "./StoreStatus";
+import { StoreExposure, StoreStatus } from "./StoreExposure";
 import { DayOfWeek } from "@/utils/store";
+import { StoreWorking } from "./StoreWorking";
 
 export interface StoreInfo {
   name: string;
@@ -26,7 +27,7 @@ export interface StoreInfo {
   deliveryPickup: number;
   businessHoursMode: string;
   timeSlots: Record<DayOfWeek, TimeSlotItem>;
-  workCondition: string;
+  workCondition: StoreWorking;
   status: StoreStatus;
 }
 
@@ -62,11 +63,11 @@ export function StoreBasicInfo() {
       SUNDAY: { startTime: "10:00", endTime: "22:00" },
     },
     workCondition: "OPEN",
-    status: "INACTIVE",
+    status: "ACTIVE",
   });
 
-  const [isEditing, setIsEditing] = useState(true); // 기본값은 편집 가능 상태
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStoreCreated, setIsStoreCreated] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
@@ -96,9 +97,9 @@ export function StoreBasicInfo() {
   const handleSave = async () => {
     try {
       setIsSubmitting(true);
-      await registerStore(storeInfo); // 실제 저장 처리
+      await registerStore(storeInfo);
       alert("가게 정보가 저장되었습니다.");
-      setIsEditing(false);
+      setIsStoreCreated(true); // 가게 생성 완료 표시
     } catch (error) {
       console.error("저장 실패:", error);
       alert("저장에 실패했습니다.");
@@ -110,28 +111,13 @@ export function StoreBasicInfo() {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
       <div className="flex justify-end">
-        {isEditing ? (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(false)}
-              disabled={isSubmitting}
-            >
-              취소
-            </Button>
-            <Button onClick={handleSave} disabled={isSubmitting}>
-              저장
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={() => setIsEditing(true)}
-            className="ml-auto"
-          >
-            수정
-          </Button>
-        )}
+        <Button
+          onClick={handleSave}
+          disabled={isSubmitting}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+        >
+          {isSubmitting ? "저장 중..." : "저장"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -148,7 +134,6 @@ export function StoreBasicInfo() {
                 name: e.target.value,
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -166,7 +151,6 @@ export function StoreBasicInfo() {
                 tel: e.target.value,
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -183,7 +167,6 @@ export function StoreBasicInfo() {
                 detailed: e.target.value,
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -201,7 +184,6 @@ export function StoreBasicInfo() {
                 bizNumber: e.target.value,
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -219,16 +201,15 @@ export function StoreBasicInfo() {
             readOnly
             className="w-full p-2 border rounded-md"
             placeholder="주소 검색"
-            onClick={() => isEditing && setShowAddressSearch(true)}
+            onClick={() => setShowAddressSearch(true)}
           />
-          {isEditing && (
-            <button
-              onClick={() => setShowAddressSearch(true)}
-              className="px-4 py-2 border rounded-md bg-gray-50"
-            >
-              주소 검색
-            </button>
-          )}
+
+          <button
+            onClick={() => setShowAddressSearch(true)}
+            className="px-4 py-2 border rounded-md bg-gray-50"
+          >
+            주소 검색
+          </button>
         </div>
         <input
           type="text"
@@ -239,7 +220,6 @@ export function StoreBasicInfo() {
               addressDetail: e.target.value,
             }))
           }
-          disabled={!isEditing}
           className="w-full mt-2 p-2 border rounded-md"
           placeholder="상세주소"
         />
@@ -260,7 +240,6 @@ export function StoreBasicInfo() {
                 deliveryTimeEstimate: Number(e.target.value),
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -278,7 +257,6 @@ export function StoreBasicInfo() {
                 deliveryPickup: Number(e.target.value),
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -291,14 +269,14 @@ export function StoreBasicInfo() {
         </label>
 
         <StoreBusinessHours
-          isEditing={isEditing}
+          isStoreCreated={isStoreCreated}
           initialBusinessHours={storeInfo?.timeSlots}
           initialMode={storeInfo?.businessHoursMode}
           onChange={(businessHoursMode, timeSlots) => {
             setStoreInfo((prev) => ({
               ...prev,
               businessHoursMode,
-              timeSlots,
+              timeSlots: timeSlots,
             }));
           }}
         />
@@ -310,13 +288,30 @@ export function StoreBasicInfo() {
           영업 상태 설정
         </label>
 
-        <StoreStatusSetting
-          isEditing={isEditing}
+        <StoreWorking
+          isStoreCreated={isStoreCreated}
+          initialWorking={storeInfo?.workCondition}
+          onChange={(working) => {
+            setStoreInfo((prev) => ({
+              ...prev,
+              workCondition: working,
+            }));
+          }}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">
+          가게 노출 상태 설정
+        </label>
+
+        <StoreExposure
+          isStoreCreated={isStoreCreated}
           initialStatus={storeInfo?.status}
           onChange={(status) => {
             setStoreInfo((prev) => ({
               ...prev,
-              status,
+              status: status,
             }));
           }}
         />
@@ -336,13 +331,12 @@ export function StoreBasicInfo() {
                 deliveryType: e.target.value,
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           >
             <option value="">선택하세요</option>
-            <option value="DELIVERY">배달</option>
-            <option value="AGENCY">픽업</option>
-            <option value="OWN_DELIVERY">자체/대행</option>
+            <option value="THIRD_PARTY">대행사배달</option>
+            {/* <option value="PICKUP">픽업</option> */}
+            <option value="OWN_DELIVERY">자체배달</option>
           </select>
         </div>
 
@@ -359,7 +353,6 @@ export function StoreBasicInfo() {
                 minOrderPrice: Number(e.target.value),
               }))
             }
-            disabled={!isEditing}
             className="w-full p-2 border rounded-md"
           />
         </div>

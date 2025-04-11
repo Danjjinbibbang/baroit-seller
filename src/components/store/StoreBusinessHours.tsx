@@ -1,52 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { DayOfWeek, BusinessHours, updateBusinessHours } from "@/utils/store";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useRef } from "react";
+import { DayOfWeek, TimeSlot, updateBusinessHours } from "@/utils/store";
 
 interface StoreBusinessHoursProps {
-  isEditing?: boolean; // 부모에서 편집 상태 제어 (선택적)
-  onChange: (
-    businessHoursMode: string,
-    timeSlots: Record<DayOfWeek, { startTime: string; endTime: string }>
-  ) => void; // 부모에게 데이터 전달 함수
-  storeId?: number | null; // 선택적 (API 직접 호출할 경우)
-  initialBusinessHours?: Record<
-    DayOfWeek,
-    { startTime: string; endTime: string }
-  >;
-  initialMode?: string;
+  isStoreCreated: boolean;
+  storeId?: number; // 스토어 ID 추가
+  initialBusinessHours: Record<DayOfWeek, TimeSlot>;
+  initialMode: string;
+  onChange: (mode: string, timeSlots: Record<DayOfWeek, TimeSlot>) => void;
 }
 
 export function StoreBusinessHours({
-  isEditing: externalIsEditing,
-  onChange,
+  isStoreCreated,
   storeId,
   initialBusinessHours,
   initialMode,
+  onChange,
 }: StoreBusinessHoursProps) {
-  // 내부적으로 편집 상태 관리 (부모에서 제어하지 않을 경우)
-  const [internalIsEditing, setInternalIsEditing] = useState(false);
-  // 실제 사용할 편집 상태 (외부에서 제공되면 그것을 사용, 아니면 내부 상태 사용)
-  const isEditing =
-    externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
-
-  // 영업시간 상태 관리 (내부적으로 관리)
-  const defaultTimeSlots = {
-    MONDAY: { startTime: "10:00", endTime: "20:00" },
-    TUESDAY: { startTime: "10:00", endTime: "20:00" },
-    WEDNESDAY: { startTime: "10:00", endTime: "20:00" },
-    THURSDAY: { startTime: "10:00", endTime: "20:00" },
-    FRIDAY: { startTime: "10:00", endTime: "20:00" },
-    SATURDAY: { startTime: "11:00", endTime: "18:00" },
-    SUNDAY: { startTime: "12:00", endTime: "17:00" },
-  };
-
-  const [businessHours, setBusinessHours] = useState<BusinessHours>({
-    mode: initialMode || "PER_DAY",
-    timeSlots: initialBusinessHours || defaultTimeSlots,
-  });
-
+  // 내부 상태 관리
+  const [localTimeSlots, setLocalTimeSlots] = useState(initialBusinessHours);
+  const [localMode, setLocalMode] = useState(initialMode);
   const [isLoading, setIsLoading] = useState(false);
 
   const dayLabels: Record<DayOfWeek, string> = {
@@ -59,144 +33,160 @@ export function StoreBusinessHours({
     SUNDAY: "일요일",
   };
 
-  // 초기값이 변경될 때 상태 업데이트
+  // 이전 값을 저장할 ref 생성
+  const prevModeRef = useRef(localMode);
+  const prevTimeSlotsRef = useRef(localTimeSlots);
+
   useEffect(() => {
-    if (initialBusinessHours) {
-      setBusinessHours((prev) => ({
-        ...prev,
-        timeSlots: {
-          ...defaultTimeSlots, // 기본값을 먼저 spread
-          ...initialBusinessHours, // 그 위에 초기값 spread
-        },
-      }));
+    // 이전 값과 현재 값이 다른 경우에만 부모에게 전달
+    if (
+      prevModeRef.current !== localMode ||
+      JSON.stringify(prevTimeSlotsRef.current) !==
+        JSON.stringify(localTimeSlots)
+    ) {
+      // 값 업데이트
+      onChange(localMode, localTimeSlots);
+
+      // 이전 값 업데이트
+      prevModeRef.current = localMode;
+      prevTimeSlotsRef.current = localTimeSlots;
     }
-    if (initialMode) {
-      setBusinessHours((prev) => ({
-        ...prev,
-        mode: initialMode,
-      }));
-    }
-  }, [initialBusinessHours, initialMode]);
+  }, [localMode, localTimeSlots]);
 
-  // 가게 ID가 바뀔 때 영업시간 로드 -> 가게 상세 정보 조회
-  // useEffect(() => {
-  //   const fetchHours = async () => {
-  //     if (!storeId) return;
+  // 시간 슬롯 변경 처리
+  const handleTimeChange = (
+    day: DayOfWeek,
+    field: "startTime" | "endTime",
+    value: string
+  ) => {
+    setLocalTimeSlots((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value,
+      },
+    }));
+    // 변경 즉시 부모에게 전달하는 방식은 useState의 비동기 특성으로 인해
+    // 최신 값이 전달되지 않을 수 있어 useEffect를 사용합니다
+  };
 
-  //     try {
-  //       const response = await ;
-  //       if (response.ok) {
-  //         const data = await response.json();
-  //         setBusinessHours(data);
-  //         setIsEditing(false); // 기본은 비편집 상태로 시작
-  //       }
-  //     } catch (error) {
-  //       console.error("영업시간 불러오기 실패:", error);
-  //     }
-  //   };
-  //   fetchHours();
-  // }, [storeId]);
+  // 모드 변경 처리
+  const handleModeChange = (newMode: string) => {
+    setLocalMode(newMode);
+    // 마찬가지로 useEffect에서 처리
+  };
 
+  // 저장 버튼 클릭 처리 - API 호출만 담당
   const handleSave = async () => {
-    setIsLoading(true);
+    if (window.confirm("영업 시간 정보를 수정하시겠습니까?")) {
+      try {
+        setIsLoading(true);
 
-    try {
-      // 1. 직접 API 호출 (storeId가 있는 경우)
-      if (storeId) {
-        await updateBusinessHours(storeId, businessHours);
-        alert("영업시간이 저장되었습니다.");
+        // API 호출하여 영업 시간 업데이트 (서버 저장)
+        if (storeId) {
+          await updateBusinessHours(storeId, {
+            mode: localMode,
+            timeSlots: localTimeSlots,
+          });
+        }
+
+        alert("영업 시간 정보가 수정되었습니다.");
+      } catch (error) {
+        console.error("영업 시간 수정 실패:", error);
+        alert("영업 시간 정보 수정에 실패했습니다.");
+      } finally {
+        setIsLoading(false);
       }
-
-      // 2. 항상 부모 컴포넌트에 변경 사항 전달 (onChange 콜백 호출)
-      onChange(businessHours.mode, businessHours.timeSlots);
-
-      // 내부적으로 편집 모드 종료 (외부에서 제어하지 않을 경우)
-      setInternalIsEditing(false);
-    } catch (error) {
-      console.error("영업시간 저장 실패:", error);
-      alert("영업시간 저장에 실패했습니다.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">요일별 영업시간 설정</h3>
-        {isEditing ? (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setInternalIsEditing(false)}
-              disabled={externalIsEditing !== undefined}
-            >
-              취소
-            </Button>
-            <Button onClick={handleSave} disabled={isLoading}>
-              저장
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={() => setInternalIsEditing(true)}
-            disabled={externalIsEditing !== undefined}
-          >
-            수정
-          </Button>
-        )}
+    <div className="space-y-4">
+      {/* 수정 버튼 - 가게 생성 후에만 활성화 */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={!isStoreCreated || isLoading}
+          className={`px-4 py-2 rounded-md ${
+            isStoreCreated
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
+        >
+          {isLoading ? "저장 중..." : "수정"}
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {Object.entries(businessHours.timeSlots).map(([day, times]) => (
-          <div key={day} className="grid grid-cols-12 gap-4 items-center">
-            <div className="col-span-2 font-medium">
-              {dayLabels[day as DayOfWeek]}
-            </div>
-            <div className="col-span-5">
-              <input
-                type="time"
-                value={times.startTime || ""}
-                onChange={(e) =>
-                  setBusinessHours((prev) => ({
-                    ...prev,
-                    timeSlots: {
-                      ...prev.timeSlots,
-                      [day]: {
-                        ...prev.timeSlots[day as DayOfWeek],
-                        startTime: e.target.value,
-                      },
-                    },
-                  }))
-                }
-                disabled={!isEditing}
-                className="w-full p-2 border rounded-md"
-              />
-            </div>
-            <div className="col-span-5">
-              <input
-                type="time"
-                value={times.endTime || ""}
-                onChange={(e) =>
-                  setBusinessHours((prev) => ({
-                    ...prev,
-                    timeSlots: {
-                      ...prev.timeSlots,
-                      [day]: {
-                        ...prev.timeSlots[day as DayOfWeek],
-                        endTime: e.target.value,
-                      },
-                    },
-                  }))
-                }
-                disabled={!isEditing}
-                className="w-full p-2 border rounded-md"
-              />
-            </div>
-          </div>
-        ))}
+      {/* 모드 선택 */}
+      <div>
+        <select
+          value={localMode}
+          onChange={(e) => handleModeChange(e.target.value)}
+          className="mt-1 block w-full p-2 border rounded-md"
+        >
+          <option value="PER_DAY">요일별 설정</option>
+          <option value="ALL_DAYS">모든 요일 동일 설정</option>
+        </select>
       </div>
+
+      {/* 시간 입력 필드들 */}
+      {localMode === "PER_DAY" ? (
+        // 요일별 설정
+        Object.keys(localTimeSlots).map((day) => (
+          <div key={day} className="flex items-center space-x-2">
+            <span className="w-24">{dayLabels[day as DayOfWeek]}</span>
+            <input
+              type="time"
+              value={localTimeSlots[day as DayOfWeek].startTime}
+              onChange={(e) =>
+                handleTimeChange(day as DayOfWeek, "startTime", e.target.value)
+              }
+              className="p-1 border rounded"
+            />
+            <span>~</span>
+            <input
+              type="time"
+              value={localTimeSlots[day as DayOfWeek].endTime}
+              onChange={(e) =>
+                handleTimeChange(day as DayOfWeek, "endTime", e.target.value)
+              }
+              className="p-1 border rounded"
+            />
+          </div>
+        ))
+      ) : (
+        // 모든 요일 동일 설정
+        <div className="flex items-center space-x-2">
+          <span className="w-24">모든 요일</span>
+          <input
+            type="time"
+            value={localTimeSlots.MONDAY.startTime}
+            onChange={(e) => {
+              const newTime = e.target.value;
+              const newTimeSlots = { ...localTimeSlots };
+              Object.keys(newTimeSlots).forEach((day) => {
+                newTimeSlots[day as DayOfWeek].startTime = newTime;
+              });
+              setLocalTimeSlots(newTimeSlots);
+            }}
+            className="p-1 border rounded"
+          />
+          <span>~</span>
+          <input
+            type="time"
+            value={localTimeSlots.MONDAY.endTime}
+            onChange={(e) => {
+              const newTime = e.target.value;
+              const newTimeSlots = { ...localTimeSlots };
+              Object.keys(newTimeSlots).forEach((day) => {
+                newTimeSlots[day as DayOfWeek].endTime = newTime;
+              });
+              setLocalTimeSlots(newTimeSlots);
+            }}
+            className="p-1 border rounded"
+          />
+        </div>
+      )}
 
       <div className="mt-6 p-4 bg-gray-50 rounded-md">
         <h4 className="font-medium mb-2">안내사항</h4>
