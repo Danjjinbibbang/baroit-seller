@@ -12,7 +12,6 @@ type Tab = "basic" | "hours" | "status" | "home-categories";
 export default function Management() {
   const [activeTab, setActiveTab] = useState<Tab>("basic");
   // 기본적으로 storeId를 1로 설정 (가게 하나만 등록 가능)
-  const [storeId, setStoreId] = useState<number | null>(null);
 
   return (
     <div className="flex flex-col h-full">
@@ -26,20 +25,6 @@ export default function Management() {
           label="가게 기본 정보"
         />
         <TabButton
-          tab="hours"
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          icon={<Clock className="w-4 h-4" />}
-          label="운영 정보"
-        />
-        <TabButton
-          tab="status"
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          icon={<Info className="w-4 h-4" />}
-          label="가게 상태"
-        />
-        <TabButton
           tab="home-categories"
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -51,11 +36,7 @@ export default function Management() {
       {/* 탭별 내용 */}
       <div className="flex-1">
         {activeTab === "basic" && <StoreBasicInfo />}
-        {activeTab === "hours" && <StoreBusinessHours storeId={storeId} />}
-        {activeTab === "status" && <StoreStatusSetting storeId={storeId} />}
-        {activeTab === "home-categories" && (
-          <HomeCategories storeId={storeId} />
-        )}
+        {activeTab === "home-categories" && <HomeCategories />}
       </div>
     </div>
   );

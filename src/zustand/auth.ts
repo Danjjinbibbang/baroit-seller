@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
         // 로그아웃 시 로컬 스토리지에서도 제거
         if (typeof window !== "undefined") {
           localStorage.removeItem("auth-storage");
+          localStorage.removeItem("store-info-storage"); // 가게 정보도 삭제
         }
         set({
           user: null,

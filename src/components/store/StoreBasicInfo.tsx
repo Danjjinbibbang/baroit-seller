@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { registerStore } from "@/utils/store"; // 등록 API
 import { Button } from "@/components/ui/button";
 import { AddressSearch } from "../address/AddressSearch";
@@ -9,6 +9,7 @@ import { StoreBusinessHours } from "./StoreBusinessHours";
 import { StoreExposure, StoreStatus } from "./StoreExposure";
 import { DayOfWeek } from "@/utils/store";
 import { StoreWorking } from "./StoreWorking";
+import { useStoreIdStore, useStoreInfoStore } from "@/zustand/store";
 
 export interface StoreInfo {
   name: string;
@@ -37,40 +38,56 @@ export interface TimeSlotItem {
 }
 
 export function StoreBasicInfo() {
-  const [storeInfo, setStoreInfo] = useState<StoreInfo>({
-    name: "",
-    detailed: "",
-    tel: "",
-    bizNumber: "",
-    addressCode: "",
-    addressDetail: "",
-    latitude: 0,
-    longitude: 0,
-    jibun: "",
-    road: "",
-    minOrderPrice: 0,
-    deliveryType: "",
-    deliveryTimeEstimate: 0,
-    deliveryPickup: 0,
-    businessHoursMode: "PER_DAY",
-    timeSlots: {
-      MONDAY: { startTime: "10:00", endTime: "22:00" },
-      TUESDAY: { startTime: "10:00", endTime: "22:00" },
-      WEDNESDAY: { startTime: "10:00", endTime: "22:00" },
-      THURSDAY: { startTime: "10:00", endTime: "22:00" },
-      FRIDAY: { startTime: "10:00", endTime: "22:00" },
-      SATURDAY: { startTime: "10:00", endTime: "22:00" },
-      SUNDAY: { startTime: "10:00", endTime: "22:00" },
-    },
-    workCondition: "OPEN",
-    status: "ACTIVE",
-  });
+  // 기존 로컬 상태 대신 Zustand 스토어 사용
+  const {
+    storeInfo,
+    setStoreInfo,
+    updateStoreInfo,
+    isStoreCreated,
+    setStoreCreated,
+    setStoreId,
+  } = useStoreInfoStore();
+  const { setStoreIdToLocal } = useStoreIdStore();
 
+  // 로컬 상태는 로딩 및 UI 상태를 위해서만 사용
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isStoreCreated, setIsStoreCreated] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
+
+  // 컴포넌트 마운트 시 스토어에 상태가 없으면 기본값 설정
+  useEffect(() => {
+    if (!storeInfo) {
+      setStoreInfo({
+        name: "",
+        detailed: "",
+        tel: "",
+        bizNumber: "",
+        addressCode: "",
+        addressDetail: "",
+        latitude: 0,
+        longitude: 0,
+        jibun: "",
+        road: "",
+        minOrderPrice: 0,
+        deliveryType: "",
+        deliveryTimeEstimate: 0,
+        deliveryPickup: 0,
+        businessHoursMode: "PER_DAY",
+        timeSlots: {
+          MONDAY: { startTime: "10:00", endTime: "22:00" },
+          TUESDAY: { startTime: "10:00", endTime: "22:00" },
+          WEDNESDAY: { startTime: "10:00", endTime: "22:00" },
+          THURSDAY: { startTime: "10:00", endTime: "22:00" },
+          FRIDAY: { startTime: "10:00", endTime: "22:00" },
+          SATURDAY: { startTime: "10:00", endTime: "22:00" },
+          SUNDAY: { startTime: "10:00", endTime: "22:00" },
+        },
+        workCondition: "OPEN",
+        status: "ACTIVE",
+      });
+    }
+  }, [storeInfo, setStoreInfo]);
 
   // 주소 검색 결과 처리
   interface AddressData {
@@ -82,14 +99,13 @@ export function StoreBasicInfo() {
   }
 
   const handleAddressSelect = (address: AddressData) => {
-    setStoreInfo((prev) => ({
-      ...prev,
+    updateStoreInfo({
       addressCode: address.zonecode,
       jibun: address.jibunAddress,
       road: address.roadAddress,
       latitude: address.latitude || 0,
       longitude: address.longitude || 0,
-    }));
+    });
     setShowAddressSearch(false);
   };
 
@@ -97,9 +113,46 @@ export function StoreBasicInfo() {
   const handleSave = async () => {
     try {
       setIsSubmitting(true);
-      await registerStore(storeInfo);
-      alert("가게 정보가 저장되었습니다.");
-      setIsStoreCreated(true); // 가게 생성 완료 표시
+      if (storeInfo != null) {
+        // 로컬 저장 먼저 수행 (입력 상태 유지를 위해)
+        console.log("저장 전 storeInfo:", storeInfo);
+
+        // API 호출
+        const response = await registerStore(storeInfo);
+
+        if (response && response.data && response.data.storeId) {
+          console.log("저장 성공, 스토어 ID:", response.data.storeId);
+
+          // 스토어 ID 설정 (상태는 이미 스토어에 있음)
+          setStoreId(response.data.storeId);
+          setStoreCreated(true);
+          setStoreIdToLocal(response.data.storeId); // local storage에 저장
+          const storeId = response.data.storeId;
+          // 상위컴포먼트로  storeId 전달
+          if (onStoreIdUpdate) {
+            onStoreIdUpdate(storeId);
+          }
+          console.log("저장 후 상태 확인:", useStoreInfoStore.getState());
+          alert("가게 정보가 저장되었습니다.");
+
+          //로컬 스토리지 저장
+          // localStorage.setItem(
+          //   "store-info-storage",
+          //   JSON.stringify({
+          //     state: {
+          //       storeInfo: storeInfo,
+          //       isStoreCreated: true,
+          //     },
+          //   })
+          // );
+        } else {
+          console.error("API 응답에 storeId가 없습니다:", response);
+          alert("API 응답에 storeId가 없습니다.");
+        }
+      } else {
+        console.error("storeInfo가 null입니다.");
+        alert("저장할 가게 정보가 없습니다.");
+      }
     } catch (error) {
       console.error("저장 실패:", error);
       alert("저장에 실패했습니다.");
@@ -127,13 +180,8 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="text"
-            value={storeInfo.name}
-            onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                name: e.target.value,
-              }))
-            }
+            value={storeInfo?.name}
+            onChange={(e) => updateStoreInfo({ name: e.target.value })}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -144,13 +192,8 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="tel"
-            value={storeInfo.tel}
-            onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                tel: e.target.value,
-              }))
-            }
+            value={storeInfo?.tel}
+            onChange={(e) => updateStoreInfo({ tel: e.target.value })}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -160,13 +203,8 @@ export function StoreBasicInfo() {
             상세 설명
           </label>
           <textarea
-            value={storeInfo.detailed}
-            onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                detailed: e.target.value,
-              }))
-            }
+            value={storeInfo?.detailed}
+            onChange={(e) => updateStoreInfo({ detailed: e.target.value })}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -177,13 +215,8 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="text"
-            value={storeInfo.bizNumber}
-            onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                bizNumber: e.target.value,
-              }))
-            }
+            value={storeInfo?.bizNumber}
+            onChange={(e) => updateStoreInfo({ bizNumber: e.target.value })}
             className="w-full p-2 border rounded-md"
           />
         </div>
@@ -197,7 +230,7 @@ export function StoreBasicInfo() {
         <div className="flex gap-2">
           <input
             type="text"
-            value={storeInfo.road}
+            value={storeInfo?.road}
             readOnly
             className="w-full p-2 border rounded-md"
             placeholder="주소 검색"
@@ -213,13 +246,8 @@ export function StoreBasicInfo() {
         </div>
         <input
           type="text"
-          value={storeInfo.addressDetail}
-          onChange={(e) =>
-            setStoreInfo((prev) => ({
-              ...prev,
-              addressDetail: e.target.value,
-            }))
-          }
+          value={storeInfo?.addressDetail}
+          onChange={(e) => updateStoreInfo({ addressDetail: e.target.value })}
           className="w-full mt-2 p-2 border rounded-md"
           placeholder="상세주소"
         />
@@ -233,12 +261,9 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="number"
-            value={storeInfo.deliveryTimeEstimate}
+            value={storeInfo?.deliveryTimeEstimate}
             onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                deliveryTimeEstimate: Number(e.target.value),
-              }))
+              updateStoreInfo({ deliveryTimeEstimate: Number(e.target.value) })
             }
             className="w-full p-2 border rounded-md"
           />
@@ -250,12 +275,9 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="number"
-            value={storeInfo.deliveryPickup}
+            value={storeInfo?.deliveryPickup}
             onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                deliveryPickup: Number(e.target.value),
-              }))
+              updateStoreInfo({ deliveryPickup: Number(e.target.value) })
             }
             className="w-full p-2 border rounded-md"
           />
@@ -270,14 +292,23 @@ export function StoreBasicInfo() {
 
         <StoreBusinessHours
           isStoreCreated={isStoreCreated}
-          initialBusinessHours={storeInfo?.timeSlots}
-          initialMode={storeInfo?.businessHoursMode}
+          initialBusinessHours={
+            storeInfo?.timeSlots || {
+              MONDAY: { startTime: "10:00", endTime: "22:00" },
+              TUESDAY: { startTime: "10:00", endTime: "22:00" },
+              WEDNESDAY: { startTime: "10:00", endTime: "22:00" },
+              THURSDAY: { startTime: "10:00", endTime: "22:00" },
+              FRIDAY: { startTime: "10:00", endTime: "22:00" },
+              SATURDAY: { startTime: "10:00", endTime: "22:00" },
+              SUNDAY: { startTime: "10:00", endTime: "22:00" },
+            }
+          }
+          initialMode={storeInfo?.businessHoursMode || "PER_DAY"}
           onChange={(businessHoursMode, timeSlots) => {
-            setStoreInfo((prev) => ({
-              ...prev,
+            updateStoreInfo({
               businessHoursMode,
               timeSlots: timeSlots,
-            }));
+            });
           }}
         />
       </div>
@@ -290,12 +321,9 @@ export function StoreBasicInfo() {
 
         <StoreWorking
           isStoreCreated={isStoreCreated}
-          initialWorking={storeInfo?.workCondition}
+          initialWorking={storeInfo?.workCondition || "OPEN"}
           onChange={(working) => {
-            setStoreInfo((prev) => ({
-              ...prev,
-              workCondition: working,
-            }));
+            updateStoreInfo({ workCondition: working });
           }}
         />
       </div>
@@ -307,12 +335,9 @@ export function StoreBasicInfo() {
 
         <StoreExposure
           isStoreCreated={isStoreCreated}
-          initialStatus={storeInfo?.status}
+          initialStatus={storeInfo?.status || "ACTIVE"}
           onChange={(status) => {
-            setStoreInfo((prev) => ({
-              ...prev,
-              status: status,
-            }));
+            updateStoreInfo({ status: status });
           }}
         />
       </div>
@@ -324,13 +349,8 @@ export function StoreBasicInfo() {
             배달 유형
           </label>
           <select
-            value={storeInfo.deliveryType}
-            onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                deliveryType: e.target.value,
-              }))
-            }
+            value={storeInfo?.deliveryType}
+            onChange={(e) => updateStoreInfo({ deliveryType: e.target.value })}
             className="w-full p-2 border rounded-md"
           >
             <option value="">선택하세요</option>
@@ -346,12 +366,9 @@ export function StoreBasicInfo() {
           </label>
           <input
             type="number"
-            value={storeInfo.minOrderPrice}
+            value={storeInfo?.minOrderPrice}
             onChange={(e) =>
-              setStoreInfo((prev) => ({
-                ...prev,
-                minOrderPrice: Number(e.target.value),
-              }))
+              updateStoreInfo({ minOrderPrice: Number(e.target.value) })
             }
             className="w-full p-2 border rounded-md"
           />

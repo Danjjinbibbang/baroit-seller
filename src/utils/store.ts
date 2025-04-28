@@ -1,5 +1,7 @@
 // 가게 관련 API 유틸리티 함수들
 
+import { useAuthStore } from "@/zustand/auth";
+
 export type DayOfWeek =
   | "MONDAY"
   | "TUESDAY"
@@ -48,7 +50,7 @@ interface CategoryResponse {
   };
 }
 
-interface HomeCategoryResponse {
+export interface HomeCategoryResponse {
   success: boolean;
   data: {
     storeId: number;
@@ -64,7 +66,7 @@ interface categories {
 // 가게 등록 API
 export async function registerStore(
   storeData: StoreData
-): Promise<{ storeId: number }> {
+): Promise<{ success: string; data: { storeId: number } }> {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/stores`,
     {
@@ -76,6 +78,12 @@ export async function registerStore(
       credentials: "include",
     }
   );
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
   if (!data.success) {
     throw new Error("가게 등록에 실패했습니다.");
@@ -100,6 +108,12 @@ export async function updateStoreStatus(
       credentials: "include",
     }
   );
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
 
   if (!data.success) {
@@ -123,6 +137,12 @@ export async function updateStoreExposure(
       credentials: "include",
     }
   );
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
 
   if (!data.success) {
@@ -146,6 +166,12 @@ export async function updateBusinessHours(
       credentials: "include",
     }
   );
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
 
   if (!data.success) {
@@ -169,6 +195,12 @@ export async function createHomeCategory(
       credentials: "include",
     }
   );
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
 
   if (!data.success) {
@@ -192,7 +224,12 @@ export async function getHomeCategories(
       credentials: "include",
     }
   );
-
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
   const data = await response.json();
   if (!data.success) {
     throw new Error("가게 홈 카테고리 조회에 실패했습니다.");
@@ -212,12 +249,17 @@ export async function deleteHomeCategory(
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        credentials: "include",
       },
+      credentials: "include",
     }
   );
-  const data = await response.json();
-  if (!data.success) {
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
+  if (!response.ok) {
     throw new Error("가게 홈 카테고리 삭제에 실패했습니다.");
   }
 }
@@ -239,8 +281,13 @@ export async function updateHomeCategory(
       credentials: "include",
     }
   );
-  const data = await response.json();
-  if (!data.success) {
+  if (response.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
+  if (!response.ok) {
     throw new Error("가게 홈 카테고리 수정에 실패했습니다.");
   }
 }

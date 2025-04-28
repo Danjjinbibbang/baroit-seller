@@ -7,27 +7,26 @@ import {
   updateHomeCategory,
   deleteHomeCategory,
 } from "@/utils/store";
+import { useStoreIdStore } from "@/zustand/store";
 
 interface HomeCategory {
   storeCategoryId: number;
   categoryName: string;
 }
 
-interface Props {
-  storeId: number | null;
-}
-
-export function HomeCategories({ storeId }: Props) {
+export function HomeCategories() {
   const [homeCategories, setHomeCategories] = useState<HomeCategory[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
     null
   );
+  const { storeId } = useStoreIdStore();
 
   useEffect(() => {
     const fetchCategories = async () => {
       if (!storeId) return;
+      console.log("storeId", storeId);
 
       try {
         const categories = await getHomeCategories(storeId);
@@ -49,6 +48,7 @@ export function HomeCategories({ storeId }: Props) {
   }, [storeId]);
 
   const handleAddCategory = async () => {
+    console.log("storeId: ", storeId);
     if (!storeId) return;
 
     try {
@@ -70,6 +70,25 @@ export function HomeCategories({ storeId }: Props) {
     }
   };
 
+  // 컴포넌트 최상위에 상태 추가
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  // useEffect로 상태 변경 감지 및 후속 작업 처리
+  useEffect(() => {
+    if (updateSuccess) {
+      // 수정 성공 후 상태 초기화
+      setIsEditingCategory(false);
+      setEditingCategoryId(null);
+      setNewCategoryName("");
+
+      // 초기화 완료 후 성공 상태 리셋
+      setUpdateSuccess(false);
+
+      // 알림 표시
+      alert("수정이 완료되었습니다.");
+    }
+  }, [updateSuccess]);
+
   const handleEditCategory = async () => {
     if (!storeId || editingCategoryId === null) return;
 
@@ -88,10 +107,8 @@ export function HomeCategories({ storeId }: Props) {
             : category
         )
       );
-
-      setIsEditingCategory(false);
-      setEditingCategoryId(null);
-      setNewCategoryName("");
+      setUpdateSuccess(true);
+      alert("수정이 완료되었습니다.");
     } catch (error) {
       console.error("홈 카테고리 수정 실패:", error);
       alert(error instanceof Error ? error.message : "수정에 실패했습니다.");
@@ -106,6 +123,7 @@ export function HomeCategories({ storeId }: Props) {
       setHomeCategories((prev) =>
         prev.filter((c) => c.storeCategoryId !== categoryId)
       );
+      alert("삭제가 완료되었습니다.");
     } catch (error) {
       console.error("홈 카테고리 삭제 실패:", error);
       alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
@@ -139,6 +157,7 @@ export function HomeCategories({ storeId }: Props) {
               key={category.storeCategoryId}
               className="flex justify-between items-center"
             >
+              <span className="font-medium">{category.categoryName}</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => {

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, X, Upload } from "lucide-react";
 import { Product, ProductOption } from "@/types/product";
+import { useStoreIdStore } from "@/zustand/store";
+import { getHomeCategories, HomeCategoryResponse } from "@/utils/store";
+import { postOptionProduct, postSingleProduct } from "@/utils/product";
 
 // 임시 카테고리 데이터
 const productCategories = [
@@ -12,16 +15,6 @@ const productCategories = [
   "과자/빵/디저트",
   "건강식품",
   "생활용품",
-];
-
-const storeCategories = [
-  "신상품",
-  "베스트",
-  "특가/할인",
-  "제철식품",
-  "선물세트",
-  "지역특산물",
-  "친환경/유기농",
 ];
 
 interface ProductFormProps {
@@ -40,7 +33,32 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [product, setProduct] = useState<Product | null>(currentProduct);
   const [tempOptionValues, setTempOptionValues] = useState<string[]>([]);
   const [optionList, setOptionList] = useState<ProductOption[]>([]);
+  const { storeId } = useStoreIdStore();
+  const [storeCategory, setStoreCategory] = useState<HomeCategoryResponse>({
+    success: false,
+    data: {
+      storeId: 0,
+      categories: [],
+    },
+  }); // 가게 홈 카테고리
+  const [selectedStoreCategoryIds, setSelectedStoreCategoryIds] = useState<
+    number[]
+  >([]); // 선택한 카테고리 ID 배열
 
+  useEffect(() => {
+    handleGetStore();
+  }, []);
+
+  // 가게홈 카테고리 조회
+  const handleGetStore = async () => {
+    if (!storeId) return;
+    try {
+      const categories = await getHomeCategories(storeId);
+      setStoreCategory(categories);
+    } catch (error) {
+      console.error("홈 카테고리 조회 실패", error);
+    }
+  };
   useEffect(() => {
     setProduct(currentProduct);
   }, [currentProduct]);
@@ -65,15 +83,33 @@ const ProductForm: React.FC<ProductFormProps> = ({
       );
     }, [] as string[][]);
 
-    const newOptionList = combinations.map((combination) => ({
-      optionName: combination.join(" / "),
-      optionValues: combination,
-      prices: [0],
-      salePrices: [0],
-      stocks: [0],
-    }));
+    const newOptionList = combinations.map((combination, index) => {
+      // 각 조합에 대해 올바른 옵션명을 가져옴
+      const optionName =
+        product.options[index % product.options.length]?.optionName || ""; // 안전하게 접근
+      return {
+        optionName: optionName,
+        optionValues: combination,
+        prices: [0],
+        salePrices: [0],
+        stocks: [0],
+      };
+    });
 
     setOptionList(newOptionList);
+
+    // 옵션값을 product.options에 반영
+    const updatedOptions = product.options.map((option, index) => ({
+      ...option,
+      optionValues:
+        tempOptionValues[index]?.split(",").map((v) => v.trim()) ||
+        option.optionValues,
+    }));
+
+    setProduct({
+      ...product,
+      options: updatedOptions,
+    });
   };
 
   const updateOptionDetail = (
@@ -81,11 +117,83 @@ const ProductForm: React.FC<ProductFormProps> = ({
     field: "prices" | "salePrices" | "stocks",
     value: number
   ) => {
-    const newOptions = [...product.options];
-    newOptions[optionIndex][field][0] = value;
-    setProduct({
-      ...product,
-      options: newOptions,
+    const newOptionList = [...optionList];
+    newOptionList[optionIndex][field][0] = value;
+    setOptionList(newOptionList);
+  };
+
+  const handleSave = async () => {
+    if (!product) return;
+    if (storeId == null) return;
+    try {
+      if (product.optionType === "단일") {
+        const response = await postSingleProduct(storeId, {
+          name: product.name,
+          description: product.description,
+          displayCategoryId: 0, // 실제 값으로 대체
+          storeCategoryIds: selectedStoreCategoryIds, // 선택한 카테고리 ID 배열
+          imageUrl: product.image,
+          fulfillmentMethod: product.deliveryType,
+          originalPrice: product.price,
+          sellingPrice: product.salePrice,
+          stock: product.stockQuantity,
+        });
+        console.log("단일 상품 저장 성공:", response);
+      } else if (product.optionType === "옵션") {
+        // API 호출 전에 optionValues 업데이트
+        const updatedOptions = product.options.map((option, index) => ({
+          ...option,
+          optionValues:
+            tempOptionValues[index]?.split(",").map((v) => v.trim()) ||
+            option.optionValues,
+        }));
+
+        const response = await postOptionProduct(storeId, {
+          name: product.name,
+          description: product.description,
+          displayCategoryId: 1, // 실제 값으로 대체
+          storeCategoryIds: selectedStoreCategoryIds, // 선택한 카테고리 ID 배열
+          fulfillmentMethod: product.deliveryType,
+          optionGroups: updatedOptions.map((option) => ({
+            name: option.optionName,
+            values: option.optionValues,
+          })),
+          variants: optionList.flatMap((option) =>
+            option.optionValues.map((value, i) => ({
+              optionValues: [
+                {
+                  optionName:
+                    product.options.length === 1
+                      ? product.options[0].optionName // 단일 옵션일 경우
+                      : product.options[i % product.options.length]
+                          ?.optionName || "", // 다중 옵션 대응
+                  optionValue: value,
+                },
+              ],
+              originalPrice: option.prices[i],
+              sellingPrice: option.salePrices[i],
+              stock: option.stocks[i],
+            }))
+          ),
+        });
+        console.log("옵션 상품 저장 성공:", response);
+      }
+
+      onSave(product); // 부모 컴포넌트에 저장 완료 알림
+    } catch (error) {
+      console.error("상품 저장 실패:", error);
+    }
+  };
+
+  const handleStoreCategoryChange = (categoryId: number) => {
+    setSelectedStoreCategoryIds((prev) => {
+      if (prev.includes(categoryId)) {
+        // 이미 선택된 경우 제거
+        return prev.filter((id) => id !== categoryId);
+      } else {
+        // 선택되지 않은 경우 추가
+        return [...prev, categoryId];
+      }
     });
   };
 
@@ -104,7 +212,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           </h2>
         </div>
         <button
-          onClick={() => onSave(product)}
+          onClick={handleSave}
           className="px-3 py-1.5 bg-blue-500 text-white rounded-md"
         >
           저장
@@ -176,23 +284,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <label className="block text-sm font-medium mb-1">
               가게홈 카테고리
             </label>
-            <select
-              className="w-full p-2 border rounded-md"
-              value={product.storeCategory}
-              onChange={(e) =>
-                setProduct({
-                  ...product,
-                  storeCategory: e.target.value,
-                })
-              }
-            >
-              <option value="">선택하세요</option>
-              {storeCategories.map((category, idx) => (
-                <option key={idx} value={category}>
-                  {category}
-                </option>
+            <div className="space-y-2">
+              {storeCategory.data.categories.map((category) => (
+                <label key={category.id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedStoreCategoryIds.includes(category.id)}
+                    onChange={() => handleStoreCategoryChange(category.id)}
+                    className="mr-2"
+                  />
+                  {category.name}
+                </label>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 
@@ -390,6 +494,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <thead>
               <tr>
                 <th className="py-2 border-b">옵션명</th>
+                <th className="py-2 border-b">옵션값</th>
                 <th className="py-2 border-b">정상가 (원)</th>
                 <th className="py-2 border-b">판매가 (원)</th>
                 <th className="py-2 border-b">재고수량</th>
@@ -400,6 +505,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               {optionList.map((option, index) => (
                 <tr key={index}>
                   <td className="py-2 border-b pr-2">{option.optionName}</td>
+                  <td className="py-2 border-b pr-2">{option.optionValues}</td>
                   <td className="py-2 border-b pr-2">
                     <input
                       type="number"

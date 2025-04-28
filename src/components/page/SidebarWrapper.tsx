@@ -16,6 +16,7 @@ import Link from "next/link";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/zustand/auth";
 import { LogIn, LogOut } from "lucide-react";
+import { logoutBusiness } from "@/utils/auth";
 
 // 메뉴 데이터
 const menuItems = [
@@ -72,8 +73,13 @@ export default function SidebarWrapper({
 
   const { isAuthenticated, logout } = useAuthStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm("정말 로그아웃 하시겠습니까?")) {
+      try {
+        await logoutBusiness();
+      } catch (error) {
+        console.log("로그아웃 오류: ", error);
+      }
       logout();
       window.location.href = "/login";
     }

@@ -1,12 +1,14 @@
 // 상품 관련 API 유틸리티 함수들
 
+import { useAuthStore } from "@/zustand/auth";
+
 export interface ProductCreateRequestSingle {
   name: string;
   description: string;
   displayCategoryId: number;
   storeCategoryIds: number[];
-  imageUrls: string;
-  fulfillmentMethod: "DELIVERY_ONLY";
+  imageUrl: string;
+  fulfillmentMethod: string;
   originalPrice: number;
   sellingPrice: number;
   stock: number;
@@ -17,7 +19,7 @@ export interface ProductCreateRequestOption {
   description: string;
   displayCategoryId: number;
   storeCategoryIds: number[];
-  fulfillmentMethod: "DELIVERY_ONLY";
+  fulfillmentMethod: string;
   optionGroups: OptionGroup[];
   variants: Variant[];
 }
@@ -46,7 +48,7 @@ interface GetProductResponse {
     name: string;
     description: string;
     registeredId: string;
-    fulfillmentMethod: "DELIVERY_ONLY";
+    fulfillmentMethod: string;
     hasOption: boolean;
     originalPrice: number | null;
     sellingPrice: number | null;
@@ -99,11 +101,17 @@ export async function postSingleProduct(
     }
   );
 
+  if (res.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
+
   const data = await res.json();
 
   if (!data.success) {
-    const error = await res.json();
-    throw new Error(error.message || "상품 등록에 실패했습니다.");
+    throw new Error("상품 등록에 실패했습니다.");
   }
 
   return data;
@@ -115,7 +123,7 @@ export async function postOptionProduct(
   productData: ProductCreateRequestOption
 ): Promise<Response> {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/products`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/products/variant`,
     {
       method: "POST",
       headers: {
@@ -125,33 +133,43 @@ export async function postOptionProduct(
       credentials: "include",
     }
   );
+  if (res.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
 
   const data = await res.json();
 
   if (!data.success) {
-    const error = await res.json();
-    throw new Error(error.message || "상품 등록에 실패했습니다.");
+    throw new Error("상품 등록에 실패했습니다.");
   }
 
   return data;
 }
-// 상품 조회
-export async function getProduct(
+
+// 사장님 상품 조회
+export async function getProductForSeller(
   storeId: number,
-  productId: number,
-  ownerId: number
+  productId: number
 ): Promise<GetProductResponse> {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/stores/${storeId}/products/${productId}?ownerId=${ownerId}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/products/${productId}/details?storeId=${storeId}`,
     {
       method: "GET",
       headers: {
-        "X-Owner-Id": ownerId.toString(),
         "Content-Type": "application/json",
       },
       credentials: "include",
     }
   );
+  if (res.status === 401) {
+    console.log("401 발생, 세션 만료");
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("세션 만료");
+  }
 
   const data = await res.json();
 
@@ -159,6 +177,5 @@ export async function getProduct(
     const error = await res.json();
     throw new Error(error.message || "상품 조회에 실패했습니다.");
   }
-
   return data;
 }

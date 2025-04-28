@@ -10,7 +10,7 @@ interface BusinessLoginData {
 interface OwnerLoginData {
   success: boolean;
   data: {
-    ownerId: string;
+    sellerId: string;
     nickname: string;
   };
 }
@@ -20,7 +20,7 @@ export async function loginBusiness(
   loginData: BusinessLoginData
 ): Promise<OwnerLoginData> {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/auth/owners/login`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/auth/sellers/login`,
     {
       method: "POST",
       headers: {
@@ -40,4 +40,21 @@ export async function loginBusiness(
     useAuthStore.getState().login(data.data);
   }
   return data;
+}
+
+//사업자 계정 로그아웃
+export async function logoutBusiness() {
+  try {
+    const response = await fetch(`api/auth/sellers/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("사업자 로그아웃에 실패하였습니다.");
+    }
+  } catch (error) {
+    console.log("사장님 로그아웃 실패: ", error);
+  }
 }

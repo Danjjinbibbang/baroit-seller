@@ -89,7 +89,6 @@ export function StoreBusinessHours({
             timeSlots: localTimeSlots,
           });
         }
-
         alert("영업 시간 정보가 수정되었습니다.");
       } catch (error) {
         console.error("영업 시간 수정 실패:", error);
