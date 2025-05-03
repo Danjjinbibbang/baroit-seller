@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { StoreBasicInfo } from "@/components/store/StoreBasicInfo";
-import { StoreBusinessHours } from "@/components/store/StoreBusinessHours";
-import { StoreStatusSetting } from "@/components/store/StoreExposure";
 import { HomeCategories } from "@/components/store/HomeCategory";
 import { Clock, Info, Store as StoreIcon, Tag } from "lucide-react";
 
