@@ -108,7 +108,7 @@ const ProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStoreCategory, setSelectedStoreCategory] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product[] | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
 
   // 검색 및 필터링 적용
