@@ -127,11 +127,11 @@ export function StoreBasicInfo() {
           setStoreId(response.data.storeId);
           setStoreCreated(true);
           setStoreIdToLocal(response.data.storeId); // local storage에 저장
-          const storeId = response.data.storeId;
+          //const storeId = response.data.storeId;
           // 상위컴포먼트로  storeId 전달
-          if (onStoreIdUpdate) {
-            onStoreIdUpdate(storeId);
-          }
+          // if (onStoreIdUpdate) {
+          //   onStoreIdUpdate(storeId);
+          // }
           console.log("저장 후 상태 확인:", useStoreInfoStore.getState());
           alert("가게 정보가 저장되었습니다.");
 
