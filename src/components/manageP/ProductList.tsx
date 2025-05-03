@@ -1,27 +1,346 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Plus, ChevronDown } from "lucide-react";
 import { Product } from "@/types/product";
-// 임시 카테고리 데이터
-const productCategories = [
-  "과일/채소",
-  "정육/계란",
-  "수산/해산물",
-  "간편식/반찬",
-  "음료/커피/차",
-  "과자/빵/디저트",
-  "건강식품",
-  "생활용품",
-];
+import { CategoryResponse, getCategories } from "@/utils/category";
+import { useQuery } from "@tanstack/react-query";
+import { getHomeCategories, HomeCategoryResponse } from "@/utils/store";
+import { useStoreIdStore } from "@/zustand/store";
 
-const storeCategories = [
-  "신상품",
-  "베스트",
-  "특가/할인",
-  "제철식품",
-  "선물세트",
-  "지역특산물",
-  "친환경/유기농",
-];
+interface Category {
+  id: number;
+  name: string;
+  depth: number;
+  fullPath: string;
+  displayOrder: number;
+  active: boolean;
+  children: Category[];
+}
+
+// 임시 카테고리 데이터
+const mockCategoryResponse: CategoryResponse = {
+  success: true,
+  data: {
+    categories: [
+      {
+        id: 1,
+        name: "과일/채소",
+        depth: 1,
+        fullPath: "과일/채소",
+        displayOrder: 1,
+        active: true,
+        children: [
+          {
+            id: 11,
+            name: "과일",
+            depth: 2,
+            fullPath: "과일/채소 > 과일",
+            displayOrder: 1,
+            active: true,
+            children: [
+              {
+                id: 111,
+                name: "제철과일",
+                depth: 3,
+                fullPath: "과일/채소 > 과일 > 제철과일",
+                displayOrder: 1,
+                active: true,
+                children: [],
+              },
+              {
+                id: 112,
+                name: "수입과일",
+                depth: 3,
+                fullPath: "과일/채소 > 과일 > 수입과일",
+                displayOrder: 2,
+                active: true,
+                children: [],
+              },
+            ],
+          },
+          {
+            id: 12,
+            name: "채소",
+            depth: 2,
+            fullPath: "과일/채소 > 채소",
+            displayOrder: 2,
+            active: true,
+            children: [
+              {
+                id: 121,
+                name: "뿌리채소",
+                depth: 3,
+                fullPath: "과일/채소 > 채소 > 뿌리채소",
+                displayOrder: 1,
+                active: true,
+                children: [],
+              },
+              {
+                id: 122,
+                name: "잎채소",
+                depth: 3,
+                fullPath: "과일/채소 > 채소 > 잎채소",
+                displayOrder: 2,
+                active: true,
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 2,
+        name: "정육/계란",
+        depth: 1,
+        fullPath: "정육/계란",
+        displayOrder: 2,
+        active: true,
+        children: [
+          {
+            id: 21,
+            name: "소고기",
+            depth: 2,
+            fullPath: "정육/계란 > 소고기",
+            displayOrder: 1,
+            active: true,
+            children: [
+              {
+                id: 211,
+                name: "국내산 소고기",
+                depth: 3,
+                fullPath: "정육/계란 > 소고기 > 국내산 소고기",
+                displayOrder: 1,
+                active: true,
+                children: [],
+              },
+              {
+                id: 212,
+                name: "수입산 소고기",
+                depth: 3,
+                fullPath: "정육/계란 > 소고기 > 수입산 소고기",
+                displayOrder: 2,
+                active: true,
+                children: [],
+              },
+            ],
+          },
+          {
+            id: 22,
+            name: "돼지고기",
+            depth: 2,
+            fullPath: "정육/계란 > 돼지고기",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+          {
+            id: 23,
+            name: "계란",
+            depth: 2,
+            fullPath: "정육/계란 > 계란",
+            displayOrder: 3,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 3,
+        name: "수산/해산물",
+        depth: 1,
+        fullPath: "수산/해산물",
+        displayOrder: 3,
+        active: true,
+        children: [
+          {
+            id: 31,
+            name: "생선",
+            depth: 2,
+            fullPath: "수산/해산물 > 생선",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 32,
+            name: "조개/갑각류",
+            depth: 2,
+            fullPath: "수산/해산물 > 조개/갑각류",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 4,
+        name: "간편식/반찬",
+        depth: 1,
+        fullPath: "간편식/반찬",
+        displayOrder: 4,
+        active: true,
+        children: [
+          {
+            id: 41,
+            name: "간편식",
+            depth: 2,
+            fullPath: "간편식/반찬 > 간편식",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 42,
+            name: "반찬",
+            depth: 2,
+            fullPath: "간편식/반찬 > 반찬",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 5,
+        name: "음료/커피/차",
+        depth: 1,
+        fullPath: "음료/커피/차",
+        displayOrder: 5,
+        active: true,
+        children: [
+          {
+            id: 51,
+            name: "생수/음료",
+            depth: 2,
+            fullPath: "음료/커피/차 > 생수/음료",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 52,
+            name: "커피",
+            depth: 2,
+            fullPath: "음료/커피/차 > 커피",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+          {
+            id: 53,
+            name: "차",
+            depth: 2,
+            fullPath: "음료/커피/차 > 차",
+            displayOrder: 3,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 6,
+        name: "과자/빵/디저트",
+        depth: 1,
+        fullPath: "과자/빵/디저트",
+        displayOrder: 6,
+        active: true,
+        children: [
+          {
+            id: 61,
+            name: "과자/스낵",
+            depth: 2,
+            fullPath: "과자/빵/디저트 > 과자/스낵",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 62,
+            name: "빵",
+            depth: 2,
+            fullPath: "과자/빵/디저트 > 빵",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+          {
+            id: 63,
+            name: "케이크/디저트",
+            depth: 2,
+            fullPath: "과자/빵/디저트 > 케이크/디저트",
+            displayOrder: 3,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 7,
+        name: "건강식품",
+        depth: 1,
+        fullPath: "건강식품",
+        displayOrder: 7,
+        active: true,
+        children: [
+          {
+            id: 71,
+            name: "영양제",
+            depth: 2,
+            fullPath: "건강식품 > 영양제",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 72,
+            name: "건강즙/건강음료",
+            depth: 2,
+            fullPath: "건강식품 > 건강즙/건강음료",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 8,
+        name: "생활용품",
+        depth: 1,
+        fullPath: "생활용품",
+        displayOrder: 8,
+        active: true,
+        children: [
+          {
+            id: 81,
+            name: "세제/세정제",
+            depth: 2,
+            fullPath: "생활용품 > 세제/세정제",
+            displayOrder: 1,
+            active: true,
+            children: [],
+          },
+          {
+            id: 82,
+            name: "화장지/물티슈",
+            depth: 2,
+            fullPath: "생활용품 > 화장지/물티슈",
+            displayOrder: 2,
+            active: true,
+            children: [],
+          },
+          {
+            id: 83,
+            name: "주방용품",
+            depth: 2,
+            fullPath: "생활용품 > 주방용품",
+            displayOrder: 3,
+            active: false,
+            children: [],
+          },
+        ],
+      },
+    ],
+  },
+};
 
 interface ProductListProps {
   products: Product[];
@@ -44,7 +363,6 @@ interface ProductListProps {
 }
 
 const ProductList: React.FC<ProductListProps> = ({
-  products,
   filteredProducts,
   selectedProducts,
   searchTerm,
@@ -62,6 +380,52 @@ const ProductList: React.FC<ProductListProps> = ({
   onDeleteProducts,
   onResetSearch,
 }) => {
+  // const { data, isLoading } = useQuery({
+  //   queryKey: ["categories"],
+  //   queryFn: async () => {
+  //     const res = await getCategories();
+
+  //     return res;
+  //   },
+  //   staleTime: 1000 * 60 * 5, // 5분간 캐싱
+  // });
+  // 상품 카테고리 열기
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { storeId } = useStoreIdStore();
+  const [storeCategory, setStoreCategory] = useState<HomeCategoryResponse>({
+    success: false,
+    data: {
+      storeId: 0,
+      categories: [],
+    },
+  }); // 가게 홈 카테고리
+
+  useEffect(() => {
+    handleGetStore();
+  }, []);
+
+  // 가게홈 카테고리 조회
+  const handleGetStore = async () => {
+    if (!storeId) return;
+    try {
+      const categories = await getHomeCategories(storeId);
+      setStoreCategory(categories);
+    } catch (error) {
+      console.error("홈 카테고리 조회 실패", error);
+    }
+  };
+
+  // 상품 카테고리 조회
+
+  const [hoveredPath, setHoveredPath] = useState<{
+    depth1: number | null;
+    depth2: number | null;
+  }>({
+    depth1: null,
+    depth2: null,
+  });
+
   return (
     <div className="px-4 py-4 border-b space-y-4 bg-white rounded-t-lg">
       {/* 검색 및 필터 영역 */}
@@ -121,22 +485,77 @@ const ProductList: React.FC<ProductListProps> = ({
             판매종료
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2 items-center">
           <span className="text-sm font-medium">상품 카테고리</span>
           <div className="relative">
-            <select
-              className="px-3 py-1.5 border rounded-full text-sm appearance-none pr-8"
-              value={selectedCategory}
-              onChange={(e) => onSelectCategory(e.target.value)}
+            <button
+              className="px-3 py-1.5 border rounded-full text-sm"
+              onClick={() => setIsOpen((prev) => !prev)}
             >
-              <option value="">상품 카테고리 선택</option>
-              {productCategories.map((category, idx) => (
-                <option key={idx} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              {selectedCategory || "상품 카테고리 선택"}
+              <ChevronDown className="inline-block ml-2 w-4 h-4" />
+            </button>
+            {isOpen && (
+              <div
+                className="absolute top-full left-0 bg-white border rounded shadow z-10 flex flex-col"
+                onMouseLeave={() =>
+                  setHoveredPath({ depth1: null, depth2: null })
+                }
+              >
+                {/* depth1 */}
+                <div className="w-full">
+                  {mockCategoryResponse.data.categories.map((depth1) => (
+                    <div
+                      key={depth1.id}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer relative"
+                      onMouseEnter={() =>
+                        setHoveredPath({ depth1: depth1.id, depth2: null })
+                      }
+                    >
+                      {depth1.name}
+                      {/* depth 2 */}
+                      {hoveredPath.depth1 === depth1.id &&
+                        depth1.children.length > 0 && (
+                          <div className="absolute left-full top-0 bg-white border rounded shadow z-20 flex flex-col w-full">
+                            {depth1.children.map((depth2) => (
+                              <div
+                                key={depth2.id}
+                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer relative"
+                                onMouseEnter={() =>
+                                  setHoveredPath({
+                                    depth1: depth1.id,
+                                    depth2: depth2.id,
+                                  })
+                                }
+                              >
+                                {depth2.name}
+                                {/* depth 3 */}
+                                {hoveredPath.depth2 === depth2.id &&
+                                  depth2.children.length > 0 && (
+                                    <div className="absolute left-full top-0 bg-white border rounded shadow z-30 w-full">
+                                      {depth2.children.map((depth3) => (
+                                        <div
+                                          key={depth3.id}
+                                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+                                          onClick={() => {
+                                            onSelectCategory(depth3.fullPath);
+                                            setIsOpen(false);
+                                          }}
+                                        >
+                                          {depth3.name}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -148,9 +567,9 @@ const ProductList: React.FC<ProductListProps> = ({
               onChange={(e) => onSelectStoreCategory(e.target.value)}
             >
               <option value="">가게홈 카테고리 선택</option>
-              {storeCategories.map((category, idx) => (
-                <option key={idx} value={category}>
-                  {category}
+              {storeCategory.data.categories.map((category, idx) => (
+                <option key={idx} value={category.name}>
+                  {category.name}
                 </option>
               ))}
             </select>
@@ -201,10 +620,9 @@ const ProductList: React.FC<ProductListProps> = ({
               <div className="w-40 flex-shrink-0">상품명</div>
               <div className="w-20 flex-shrink-0">판매상태</div>
               <div className="w-20 flex-shrink-0">재고</div>
-              <div className="w-24 flex-shrink-0">재고 관리</div>
               <div className="w-20 flex-shrink-0">정상가</div>
               <div className="w-20 flex-shrink-0">판매가</div>
-              <div className="w-20 flex-shrink-0">음식개수</div>
+              <div className="w-20 flex-shrink-0">재고</div>
               <div className="w-24 flex-shrink-0">배송방식</div>
               <div className="w-24 flex-shrink-0">등록 이력</div>
               <div className="w-32 flex-shrink-0">최근 수정 이력</div>
@@ -227,9 +645,6 @@ const ProductList: React.FC<ProductListProps> = ({
                 </div>
                 <div className="w-20 flex-shrink-0">{product.status}</div>
                 <div className="w-20 flex-shrink-0">{product.stock}</div>
-                <div className="w-24 flex-shrink-0">
-                  {product.stockManagement}
-                </div>
                 <div className="w-20 flex-shrink-0">
                   {product.price.toLocaleString()}원
                 </div>

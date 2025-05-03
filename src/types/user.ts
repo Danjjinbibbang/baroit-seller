@@ -7,3 +7,7 @@ export interface AddressRequest {
   phoneNumber: string;
   isDefault: boolean;
 }
+
+export interface User {
+  ownerId: string;
+}

@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from "react";
 import ProductForm from "@/components/manageP/ProductForm";
 import ProductList from "@/components/manageP/ProductList";
+import { useStoreIdStore } from "@/zustand/store";
+import { postOptionProduct, postSingleProduct } from "@/utils/product";
 
 // 옵션 타입 정의
 interface ProductOption {
@@ -14,7 +16,7 @@ interface ProductOption {
   stocks: number[];
 }
 
-// 상품 타입 정의
+//상품 타입 정의
 interface Product {
   id: string;
   name: string;
@@ -190,7 +192,7 @@ const ProductsPage: React.FC = () => {
       salePrice: 0,
       stockQuantity: 0,
       unit: "",
-      deliveryType: "배달",
+      deliveryType: "DELIVERY_ONLY",
       updatedAt: dateStr,
       createdAt: dateStr,
       category: "",
@@ -219,21 +221,26 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const handleSaveProduct = (product: Product) => {
+  const handleSaveProduct = async (product: Product) => {
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0].replace(/-/g, ".");
 
-    if (isNewProduct) {
-      setProducts((prev) => [
-        ...prev,
-        { ...product, createdAt: dateStr, updatedAt: dateStr },
-      ]);
-    } else {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...product, updatedAt: dateStr } : p
-        )
-      );
+    try {
+      if (isNewProduct) {
+        setProducts((prev) => [
+          ...prev,
+          { ...product, createdAt: dateStr, updatedAt: dateStr },
+        ]);
+      } else {
+        // 수정 로직
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === product.id ? { ...product, updatedAt: dateStr } : p
+          )
+        );
+      }
+    } catch (error) {
+      console.error("상품 저장 실패:", error);
     }
 
     setIsEditMode(false);
